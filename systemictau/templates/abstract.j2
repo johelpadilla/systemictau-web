@@ -1,0 +1,21 @@
+## Executive Summary
+
+This document presents the topological analysis of the dataset **{{ metadata.dataset }}** using an observation window $n = {{ metadata.window_size }}$. 
+
+{% if t_star %}
+The analysis successfully detected the **Systemic Reorganization Point** (Consensus Transition) at $t^* = {{ t_star }}$, where the system reached global spatial convergence. At this point, the global synchronization metric crossed into the Feigenbaum chaotic band ($|\tau_s| < 0.41$), marking the topological collapse of the system. 
+
+**{{ episodes | length }}** Joint Episodes were detected, evidencing the low-variance precursors in the enabling layer before the collapse. 
+{% else %}
+During the evaluated temporal window, the system did not present a conclusive global systemic reorganization (no unanimous $t^*$ was detected). Nevertheless, the continuous analyses of temporal discretization and spatial synchronization are provided.
+{% endif %}
+
+{% if warnings and warnings|length > 0 %}
+## Limitations and Validation (Engine Diagnostics)
+> [!WARNING]
+> **Engine Validation Alerts**
+> The mathematical pipeline reported the following warnings during execution:
+{% for w in warnings %}
+> - {{ w }}
+{% endfor %}
+{% endif %}

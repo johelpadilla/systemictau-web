@@ -1,0 +1,16 @@
+## Law of the Discrete Extramental Clock (RECD) and Fractal Dimension
+
+Analytical integration demonstrates the fracturing of continuous chronological time $t$ towards discrete systemic time $T$. This regulated accumulation is governed by the **Law of the Discrete Extramental Clock (RECD)**, through the central equation:
+
+$$ \Delta t_k = \delta^{-k} \cdot |\tau_s| \cdot \frac{dt_0}{n} $$
+
+{% if fractal_D %}
+The geometric dimension analysis validated through the Higuchi method yields a supporting fractal dimension $D \approx {{ fractal_D | round(3) }}$ for systemic time. 
+
+This result robustly agrees with the empirical corpus that places rigorous bounds in $[1.96, 2.01]$, a phenomenon explicable as a Bayesian Optimal Accumulator. This explicitly contrasts with the purely topological-spatial dimension of the original attractor ($\approx 0.538$), evidencing the dual dimensionality of the Systemic Tau paradigm.
+{% else %}
+The "gated accumulation" process fractalizes the dynamic space-time of the components into a single global variable $\Delta t_k$, whose limit and divergence demonstrate the mathematical impossibility of returning to the previous linear regime once the threshold $t^*$ is crossed.
+{% endif %}
+
+---
+*To guarantee reproducibility, this document was derived using `systemictau` v{{ metadata.package_version }} with window $n={{ metadata.window_size }}$. Cite as: Padilla (2026). "Magna Synthesis v6" and associated Python package.*

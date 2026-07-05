@@ -1,0 +1,18 @@
+{% if figures and figure_mode != 'none' %}
+## Visual Appendix: Topological Reconstruction
+
+Below are the visual projections of the systemic reconstruction:
+
+{% for name, path_or_base64 in figures.items() %}
+### {{ name }}
+
+{% if figure_mode == 'base64' %}
+![{{ name }}](data:image/png;base64,{{ path_or_base64 }})
+{% else %}
+![{{ name }}]({{ path_or_base64 }})
+{% endif %}
+
+*Figure: Rendering of the topological structure generated in SystemicTau.*
+{% endfor %}
+
+{% endif %}

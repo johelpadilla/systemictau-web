@@ -1,0 +1,15 @@
+## Joint Episodes and Relational Kairos
+
+The theory dictates that topological collapse is preceded by spatio-temporal units called *Joint Episodes*. These units (Layer 2) act as bidirectional probabilistic filtering, establishing a "Relational Kairos" that enables the imminent "Ontological Kairos" (Layer 3). 
+
+Below is a summary of the detected episodes (Contiguous low-amplitude runs containing a significant M peak):
+
+{% if episodes|length > 0 %}
+| Start | End | Duration (D) | Mean M ($M_{mean}$) | Total Magnitude (J) | J > 0.7 (%) |
+|--------|-----|--------------|----------------------|--------------------|-------------|
+{% for ep in episodes %}
+| {{ ep.start }} | {{ ep.end }} | {{ ep.D }} | {{ ep.M_mean | round(4) }} | {{ ep.J | round(4) }} | {{ (ep.J07 * 100) | round(2) }}% |
+{% endfor %}
+{% else %}
+*No discrete significant joint episodes (spatiotemporal) were detected under the current threshold. In contexts of high hyper-persistence (elevated $hp_z$ and continuous Trapping Time), the system may operate as an uninterrupted critical mass without returning to baseline levels, dissolving the temporal boundary of discrete episodes in favor of a global topological "trap".*
+{% endif %}

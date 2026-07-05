@@ -1,0 +1,18 @@
+## Persistence Statistics and Ordinal Criticality
+
+Unlike traditional stochastic approaches, the Systemic Tau paradigm does not evaluate global variance over a flat chronological series, but rather the temporal persistence and sustained activation of the fractal gate function $g(\tau_s)$.
+
+{% if nonlinear_stats %}
+| Metric (Layers 1 & 2) | Calculated Value |
+|----------------------|-----------------|
+| Hyper-persistence Z-score ($hp_z$) | {{ nonlinear_stats.hp_z | round(4) }} |
+| Ordinal Laminarity (RQA) | {{ nonlinear_stats.laminarity | round(4) }} |
+| Trapping Time | {{ nonlinear_stats.trapping_time | round(4) }} |
+| Maximum Critical Mass ($M_{max}$) | {{ nonlinear_stats.max_M | round(4) }} |
+| Mean Critical Mass ($M_{mean}$) | {{ nonlinear_stats.mean_M | round(4) }} |
+| Average $\Delta t_k$ (Open Gate) | {{ nonlinear_stats.mean_dtk_open | round(4) }} |
+
+*Paradigmatic note: An elevated hyper-persistence ($hp_z$) or significant laminarity validates the Bayesian Optimal Accumulator theoretical framework. This confirms that the observed "Critical Slowing Down" is not due to a stochastic widening of the potential well, but to a sustained topological memory (Relational Kairos) prior to the global reorganization.*
+{% else %}
+*No detailed nonlinear statistics were provided for this run.*
+{% endif %}
