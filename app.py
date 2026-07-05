@@ -245,12 +245,24 @@ with st.sidebar:
     st.markdown("<h3 style='text-align: center;'>Systemic Tau 🧬 v4.4.x</h3>", unsafe_allow_html=True)
     st.markdown("<p style='text-align: center; color: #888;'>True Mathematical Engine</p>", unsafe_allow_html=True)
     
-    window_size = st.slider("Window Size (n)", min_value=5, max_value=150, value=13, step=1, help="The sliding window size for Tau calculation. Larger values smooth noise but delay detection.")
+    window_size = st.slider(
+        "Window Size (n)", 
+        min_value=5, max_value=150, value=13, step=1, 
+        help="**¿Qué es la Ventana Deslizante?**\nEs el número de observaciones temporales consecutivas (t) evaluadas simultáneamente para calcular el nivel de entrelazamiento sistémico.\n\n*   **Ventanas Cortas (Ej. 5-10):** Capturan dinámicas ultrarrápidas y cambios abruptos, pero son altamente susceptibles al 'ruido' estadístico.\n*   **Ventanas Largas (Ej. 20+):** Suavizan la señal revelando la tendencia macroscópica, pero *retrasan* matemáticamente la detección de la Alerta Temprana (EWS).\n*Recomendación*: 13 es un óptimo de Pareto empírico probado en ciclos biológicos y financieros."
+    )
     
     with st.expander("⚙️ Advanced Parameters"):
-        st.markdown("<small>Probabilistic Filters</small>", unsafe_allow_html=True)
-        theta_A = st.number_input("Magnitude Threshold (θ_A)", value=0.05, step=0.01, help="Minimum amplitude for a Joint Episode.")
-        D_min = st.number_input("Minimum Duration (D_min)", value=10, step=1, help="Minimum temporal duration (steps) to consider a lock-in valid.")
+        st.markdown("<small>Filtros Probabilísticos</small>", unsafe_allow_html=True)
+        theta_A = st.number_input(
+            "Umbral de Magnitud (θ_A)", 
+            value=0.05, step=0.01, 
+            help="**Umbral de Magnitud Topológica (θ_A)**\nFiltra fluctuaciones menores. Define la agresividad mínima requerida para que un cambio relacional sea catalogado como un 'Episodio Sistémico' (Critical Lock-in). Valores históricos como 0.41 representan barreras termodinámicas extremas, mientras que 0.05 es ideal para alta sensibilidad."
+        )
+        D_min = st.number_input(
+            "Duración Mínima (D_min)", 
+            value=10, step=1, 
+            help="**Duración Mínima (D_min)**\nCondición de contorno temporal. Un bloqueo topológico solo adquiere validación matemática si el sistema permanece anclado en hiper-sincronización durante al menos *D_min* pasos temporales. Actúa como un filtro pasa-bajos contra falsos positivos y micro-shocks transitorios."
+        )
         
     with st.expander("📝 Report Branding"):
         report_title = st.text_input("Project Title", value="Systemic Tau Analysis")
@@ -264,6 +276,18 @@ with st.sidebar:
         
     st.markdown("---")
     st.info("Upload your dataset in the Data Hub to begin analysis.")
+
+    # ------------------ LEGAL DISCLAIMER ------------------
+    st.markdown(
+        """
+        <div style='font-size: 0.75em; color: #666; margin-top: 2em; line-height: 1.2;'>
+        <b>Disclaimer:</b> Systemic Tau is designed for academic research and retrospective topological analysis. 
+        It does not constitute financial, medical, or life-critical diagnostic advice. 
+        Decisions made based on this engine's outputs are at the user's own risk.
+        </div>
+        """, 
+        unsafe_allow_html=True
+    )
 
 # Main Layout
 tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
@@ -322,13 +346,16 @@ with tab1:
         )
         
         st.write("")
-        if st.button("🧪 Load Example (Dengue Outbreak)"):
+        st.markdown("### 🧪 Datasets de Prueba Integrados")
+        st.info("**¿No tienes datos a la mano?** Explora el potencial del motor Systemic Tau cargando nuestro dataset validado metodológicamente.")
+        
+        if st.button("🦠 Cargar Dataset: Brote de Dengue (DengAI)"):
             if os.path.exists("data/datos_dengai_completo.csv"):
                 st.session_state.raw_df = pd.read_csv("data/datos_dengai_completo.csv")
-                st.success("✅ Example dataset loaded successfully!")
+                st.success("✅ **Dataset de Epidemia de Dengue cargado.** Este dataset contiene variables climáticas y de vegetación. Ve a 'Data Health' para iniciar el preprocesamiento y luego a 'Ontological Scales'.")
                 st.rerun()
             else:
-                st.error("Example dataset file not found.")
+                st.error("Archivo de dataset de ejemplo no encontrado en la ruta 'data/'.")
     
     if uploaded_file is not None:
         try:
