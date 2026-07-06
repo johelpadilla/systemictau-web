@@ -33,6 +33,7 @@ def run_full_analysis(
     validate_fractal: bool = True,
     expected_fractal_range: tuple[float, float] = (1.85, 2.15),
     component_names: Optional[List[str]] = None,
+    adaptive_breathing: bool = False,
     **kwargs,
 ) -> OntologicalAscentResult:
     """
@@ -84,7 +85,7 @@ def run_full_analysis(
         )
 
     # === 1. Cálculo de Tau ===
-    taus_global, taus_per_module = compute_taus(X, window_size=window_size)
+    taus_global, taus_per_module = compute_taus(X, window_size=window_size, adaptive=adaptive_breathing)
 
     # === 2. Reloj Extramental Discreto (RECD) ===
     T_series, dtk_series, _, _ = accumulate_time(taus_global)

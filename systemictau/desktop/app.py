@@ -80,7 +80,7 @@ else:
         pass
 
 # === VERSION (single source of truth for the desktop app) ===
-APP_VERSION = "4.1"
+APP_VERSION = "4.6.1"
 APP_TITLE = f"Systemic Tau v{APP_VERSION}"
 
 class LocationSelectorDialog(ctk.CTkToplevel):

@@ -1,4 +1,4 @@
-__version__ = "4.6.0"
+__version__ = "4.6.1"
 from .core import compute_taus, systemic_tau, SystemicTauResult
 from .recd import compute_recd_increments, accumulate_time, gate_function
 from .layers import (

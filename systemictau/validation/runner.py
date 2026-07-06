@@ -65,38 +65,43 @@ def run_surrogate_validation(
             validate_fractal=validate_fractal,
             **kwargs
         )
-        surrogate_t_stars.append(surr_res.t_star)
+        # We track the maximum Systemic Tau strength as our test statistic
+        import warnings
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", category=RuntimeWarning)
+            max_tau = float(np.nanmax(surr_res.taus_global)) if len(surr_res.taus_global) > 0 else 0.0
+        surrogate_t_stars.append(max_tau)
         
     # 4. Statistical Analysis
-    if real_t_star is None:
-        percentile_rank = 0.0
-        is_significant = False
+    import warnings
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", category=RuntimeWarning)
+        real_max_tau = float(np.nanmax(real_result.taus_global)) if len(real_result.taus_global) > 0 else 0.0
+    
+    # Calculate the percentile of the real_max_tau within the surrogate distribution.
+    # We want to know what percentage of surrogates have a WEAKER maximum tau than the real data.
+    # A high percentile (e.g. 99%) means the real coupling strength is stronger than 99% of random surrogates.
+    if len(surrogate_t_stars) > 0:
+        weaker_surrogates = sum(1 for tau in surrogate_t_stars if tau < real_max_tau)
+        percentile_rank = (weaker_surrogates / n_surrogates) * 100.0
     else:
-        # We want to see how unusual the empirical t_star is.
-        # A valid surrogate t_star means the linear properties ALONE were enough to 
-        # trigger a phase transition detection. 
-        # The number of times surrogates generated ANY t* is our primary metric.
-        valid_surr_t = [t for t in surrogate_t_stars if t is not None]
+        percentile_rank = 0.0
         
-        # P-value is roughly the fraction of surrogates that yielded a valid t*
-        # If t* is rarely found in surrogates, the real t* is highly significant.
-        false_positive_rate = len(valid_surr_t) / n_surrogates
-        
-        # If we have a specific hypothesis about WHEN t* occurs, we could compare the timing.
-        # But generally, just the existence of t* in independent random-phase data is the null.
-        percentile_rank = (1.0 - false_positive_rate) * 100.0
-        is_significant = false_positive_rate < 0.05
+    # Significant if the real max_tau is greater than 95% of the surrogates (p < 0.05 equivalent for a right-tailed test)
+    is_significant = percentile_rank >= 95.0
         
     execution_time = time.time() - start_time
     
     metadata = {
         "execution_time_seconds": round(execution_time, 2),
-        "false_positive_rate": false_positive_rate if real_t_star is not None else 1.0
+        "real_max_tau": real_max_tau,
+        "surrogate_max_tau_mean": np.mean(surrogate_t_stars) if surrogate_t_stars else 0.0,
+        "surrogate_max_tau_std": np.std(surrogate_t_stars) if surrogate_t_stars else 0.0
     }
     
     return SurrogateValidationResult(
         real_result=real_result,
-        surrogate_t_stars=surrogate_t_stars,
+        surrogate_t_stars=surrogate_t_stars, # this now stores max_tau values
         percentile_rank=percentile_rank,
         is_significant=is_significant,
         n_surrogates=n_surrogates,

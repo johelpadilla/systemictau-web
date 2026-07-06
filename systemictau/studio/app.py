@@ -493,7 +493,7 @@ def _load_session_from_json(uploaded_file):
 # Sidebar — controls
 # =============================================================================
 with st.sidebar:
-    st.markdown("### Systemic Tau Studio")
+    st.markdown("### Systemic Tau Studio v4.6.1")
     st.caption("Ontological Analysis • Principle of Ontological Ascent")
 
     st.divider()
@@ -532,11 +532,11 @@ with st.sidebar:
 # =============================================================================
 col_title, col_sub = st.columns([3, 2])
 with col_title:
-    st.markdown("# Systemic Tau Studio")
+    st.markdown("# Systemic Tau Studio v4.6.1")
     st.markdown(
-        "<span style='color:#555; font-size:1.02rem'>A research instrument for multi-scale ontological analysis "
+        "<span style='font-size: 1.1em; color: #555;'>Analyze ontological boundaries "
         "of complex systems using <b>Systemic Tau (τ_s)</b> and <b>RECD</b>.</span>",
-        unsafe_allow_html=True,
+        unsafe_allow_html=True
     )
 with col_sub:
     st.markdown(
@@ -1377,9 +1377,42 @@ if st.session_state.get("cross_hypo"):
 st.divider()
 
 # =============================================================================
+# Surrogate Testing
+# =============================================================================
+st.markdown("## 5. IAAFT Surrogate Validation")
+st.markdown("Test the statistical significance of the topological collapse by generating parallel universes (surrogate data) that preserve linear properties but destroy non-linear topological couplings.")
+
+if st.button("Run Surrogate Validation (500 universes)", type="primary"):
+    df_raw = st.session_state.get("df_raw")
+    if df_raw is not None:
+        with st.spinner("Generating 500 parallel universes (IAAFT) and running systemic tau on each. This may take a minute..."):
+            import systemictau as st_engine
+            X_real = df_raw.select_dtypes(include=[np.number]).values
+            try:
+                surr_res = st_engine.run_surrogate_validation(
+                    X_real, 
+                    n_surrogates=500, 
+                    mode="fast", 
+                    window_size=window_size
+                )
+                st.session_state["surrogate_result"] = surr_res
+                st.success("Surrogate validation complete! Results are shown below and will be included in the PDF report.")
+            except Exception as e:
+                st.error(f"Error running surrogates: {e}")
+    else:
+        st.warning("Please upload and analyze data first.")
+
+if "surrogate_result" in st.session_state:
+    surr_res = st.session_state["surrogate_result"]
+    st.info("### Validation Results")
+    st.markdown(surr_res.summary())
+
+st.divider()
+
+# =============================================================================
 # Export & Reporting
 # =============================================================================
-st.markdown("## 5. Export & Reporting")
+st.markdown("## 6. Export & Reporting")
 
 df_raw_for_export = st.session_state.get("df_raw")
 
@@ -1393,11 +1426,13 @@ if st.button("📄 Generate & Save Full Report (multi-page PDF)", width="stretch
 
             try:
                 sens_report = st.session_state.get("sensitivity_report")
+                surr_res = st.session_state.get("surrogate_result")
                 pdf_bytes = create_report_pdf(
                     views_to_report,
                     raw_shape=raw_shape,
                     window_size=ws,
                     sensitivity_report=sens_report,
+                    surrogate_result=surr_res,
                 )
             except TypeError as te:
                 if "unexpected keyword argument" in str(te) or "got an unexpected keyword" in str(te).lower():
@@ -1410,7 +1445,7 @@ if st.button("📄 Generate & Save Full Report (multi-page PDF)", width="stretch
                     sr = first.get("scale_results", {})
                     sm = first.get("scale_metrics", {})
                     it = first.get("insight_text")
-                    pdf_bytes = create_report_pdf(sr, sm, insight_text=it)
+                    pdf_bytes = create_report_pdf(sr, sm, insight_text=it, surrogate_result=st.session_state.get("surrogate_result"))
                 else:
                     raise
 

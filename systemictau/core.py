@@ -80,7 +80,85 @@ def _compute_taus_numba(X, window_size, stride):
             
     return taus_global, taus_per_module
 
-def compute_taus(X, window_size=13, stride=1):
+@njit
+def _compute_taus_adaptive_numba(X, base_window_size, stride):
+    T, N = X.shape
+    taus_global = np.full(T, np.nan)
+    taus_per_module = np.full((T, N), np.nan)
+    
+    # 1. Global Baseline Volatility (MASD)
+    sum_diffs = 0.0
+    count_diffs = 0
+    for t in range(1, T):
+        for i in range(N):
+            val = abs(X[t, i] - X[t - 1, i])
+            if not np.isnan(val):
+                sum_diffs += val
+                count_diffs += 1
+                
+    V_base = (sum_diffs / count_diffs) if count_diffs > 0 else 1e-9
+    if V_base == 0:
+        V_base = 1e-9
+        
+    w_min = max(7, int(base_window_size * 0.5))
+    w_max = min(T, int(base_window_size * 2.0))
+    
+    for t in range(base_window_size - 1, T, stride):
+        # 2. Local Volatility
+        local_sum = 0.0
+        local_count = 0
+        for k in range(t - base_window_size + 2, t + 1):
+            if k < 1: continue
+            for i in range(N):
+                val = abs(X[k, i] - X[k - 1, i])
+                if not np.isnan(val):
+                    local_sum += val
+                    local_count += 1
+                    
+        V_t = (local_sum / local_count) if local_count > 0 else V_base
+        
+        # 3. Regime Ratio
+        R_t = V_t / V_base
+        
+        # 4. Adaptive Window W_t
+        if R_t <= 0:
+            W_t = w_max
+        else:
+            W_t = int(base_window_size / R_t)
+            
+        if W_t < w_min: W_t = w_min
+        if W_t > w_max: W_t = w_max
+        
+        if t - W_t + 1 < 0:
+            W_t = t + 1
+            
+        window = X[t - W_t + 1 : t + 1, :]
+        
+        tau_matrix = np.zeros((N, N))
+        for i in range(N):
+            for j in range(i + 1, N):
+                tau = _kendall_tau_numba(window[:, i], window[:, j])
+                tau_matrix[i, j] = tau
+                tau_matrix[j, i] = tau
+                
+        sum_tau = 0.0
+        count = 0
+        for i in range(N):
+            for j in range(i + 1, N):
+                sum_tau += tau_matrix[i, j]
+                count += 1
+        taus_global[t] = sum_tau / count if count > 0 else np.nan
+        
+        for i in range(N):
+            sum_mod = 0.0
+            for j in range(N):
+                if i != j:
+                    sum_mod += tau_matrix[i, j]
+            taus_per_module[t, i] = sum_mod / (N - 1) if N > 1 else np.nan
+            
+    return taus_global, taus_per_module
+
+def compute_taus(X, window_size=13, stride=1, adaptive=False):
     """
     Computes Systemic Tau and per-module tau over a sliding window.
     Uses Numba if available for massive speedup.
@@ -90,7 +168,10 @@ def compute_taus(X, window_size=13, stride=1):
         raise ValueError("At least 2 components are required.")
         
     if HAS_NUMBA:
-        return _compute_taus_numba(X, window_size, stride)
+        if adaptive:
+            return _compute_taus_adaptive_numba(X, window_size, stride)
+        else:
+            return _compute_taus_numba(X, window_size, stride)
         
     # Only warn once per session (called 3x per full analysis: Local/Medium/Global)
     if not getattr(compute_taus, "_numba_warned", False):

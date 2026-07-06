@@ -697,6 +697,7 @@ def create_report_pdf(
     title: str = "Systemic Tau Studio — Multi-Perspective Ontological Report",
     insight_text: Optional[str] = None,
     sensitivity_report: Any = None,   # NEW: optional sensitivity results
+    surrogate_result: Any = None,     # NEW: optional IAAFT surrogate results
     **kwargs,
 ) -> bytes | str:
     """
@@ -992,6 +993,39 @@ def create_report_pdf(
             plt.close(sens_fig)
         except Exception:
             pass  # never break the whole report because of sensitivity
+
+    # ========== SURROGATE VALIDATION (IAAFT) ==========
+    if surrogate_result is not None:
+        try:
+            surr_fig = plt.figure(figsize=(8.5, 11))
+            sax = surr_fig.add_subplot(111)
+            sax.axis("off")
+
+            sax.text(0.5, 0.96, "IAAFT Surrogate Validation", ha="center", fontsize=16, fontweight="bold")
+            sax.text(0.5, 0.92, "Testing the significance of the systemic topological collapse", ha="center", fontsize=10)
+
+            # Use the text-based summary we added
+            summary_lines = surrogate_result.summary().split('\n')
+            
+            y_pos = 0.85
+            for line in summary_lines:
+                if line.startswith("## ") or line.startswith("### "):
+                    sax.text(0.08, y_pos, line.replace("#", "").strip(), fontsize=12, fontweight="bold")
+                    y_pos -= 0.04
+                elif line.startswith("- "):
+                    sax.text(0.12, y_pos, line, fontsize=10)
+                    y_pos -= 0.03
+                else:
+                    sax.text(0.08, y_pos, line, fontsize=10)
+                    y_pos -= 0.03
+                    
+                if y_pos < 0.1: # new page if needed (rare for summary)
+                    break
+            
+            pdf.savefig(surr_fig, bbox_inches="tight")
+            plt.close(surr_fig)
+        except Exception as e:
+            print(f"Error generating surrogate PDF page: {e}")
 
     data = buf.getvalue()
     if filename:

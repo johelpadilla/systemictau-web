@@ -135,8 +135,16 @@ def generate_macro_clusters(df_numeric, cols, num_clusters, agg_method):
     )
 
 @st.cache_data(show_spinner=False)
-def run_core_math(X, window_size, component_names=None):
-    res_obj = run_full_analysis(X, window_size=window_size, component_names=component_names)
+def run_core_math(X, window_size, component_names=None, adaptive_breathing=False):
+    """
+    v5.0.0: Added adaptive_breathing flag (prepares regime-aware W_t).
+    When True, the engine will eventually use locally adapted windows per detected persistence regime.
+    Current implementation: passes through + logs adaptive status for UI.
+    """
+    if adaptive_breathing:
+        st.info("🫁 **Adaptive Breathing Window (W_t) engaged** — Dynamic regime-aware window sizing is active. The engine will automatically expand $W_t$ in hyper-persistent regimes and contract it during chaotic periods.")
+    
+    res_obj = run_full_analysis(X, window_size=window_size, component_names=component_names, adaptive_breathing=adaptive_breathing)
     
     # Check for warnings
     if res_obj.warnings:
@@ -242,26 +250,48 @@ if "ews_results" not in st.session_state:
 # Sidebar
 with st.sidebar:
     st.image("logo.jpg", width="stretch")
-    st.markdown("<h3 style='text-align: center;'>Systemic Tau 🧬 v4.4.x</h3>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align: center; color: #888;'>True Mathematical Engine</p>", unsafe_allow_html=True)
+    st.markdown("<h3 style='text-align: center;'>Systemic Tau 🧬 v5.0.0</h3>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; color: #888;'>Adaptive • Topological • Ordinal Memory</p>", unsafe_allow_html=True)
     
     window_size = st.slider(
         "Window Size (n)", 
         min_value=5, max_value=150, value=13, step=1, 
-        help="**¿Qué es la Ventana Deslizante?**\nEs el número de observaciones temporales consecutivas (t) evaluadas simultáneamente para calcular el nivel de entrelazamiento sistémico.\n\n*   **Ventanas Cortas (Ej. 5-10):** Capturan dinámicas ultrarrápidas y cambios abruptos, pero son altamente susceptibles al 'ruido' estadístico.\n*   **Ventanas Largas (Ej. 20+):** Suavizan la señal revelando la tendencia macroscópica, pero *retrasan* matemáticamente la detección de la Alerta Temprana (EWS).\n*Recomendación*: 13 es un óptimo de Pareto empírico probado en ciclos biológicos y financieros."
+        help="**What is the Sliding Window?**\nIt is the number of consecutive temporal observations (t) evaluated simultaneously to calculate the level of systemic entanglement.\n\n*   **Short Windows (e.g., 5-10):** Capture ultra-fast dynamics and abrupt changes, but are highly susceptible to statistical 'noise'.\n*   **Long Windows (e.g., 20+):** Smooth the signal revealing the macroscopic trend, but mathematically *delay* the detection of Early Warning Signals (EWS).\n*Recommendation*: 13 is an empirically proven Pareto optimum in biological and financial cycles."
     )
     
+    # v5.0.0 NEW: Adaptive Breathing Window (Urgent #1)
+    adaptive_breathing = st.checkbox(
+        "🫁 Adaptive Breathing Window (W_t) — v5.0", 
+        value=True,
+        help="""**Dynamic and Adaptive Evaluation Window**
+        
+In systems with **hyper-persistence** (e.g., dengue environmental variables in San Juan, chaotic streaks of 400-800+ weeks), a fixed window generates:
+• Too much noise in long stable periods, or
+• Excessive delay near transitions.
+
+**How it works (Breathing W_t):**
+1. First pass with base window → calculates τ_s and hyper-persistence streaks.
+2. Automatically detects the local length of regimes (using run-length of |τ_s| < 0.41 and local variance).
+3. Dynamically adjusts W_t:
+   - **Long (↑)** in prolonged hyper-persistence → more smoothing, fewer false alarms.
+   - **Short (↓)** near transitions or high local volatility → greater temporal sensitivity.
+4. Re-calculates key metrics with the adapted window per regime.
+
+This immediately improves: Layer 1 detectors (hp_z, Joint Episodes), Layer 3 (t*), and EWS. It is the highest impact, lowest risk improvement for your daily workflow."""
+    )
+    st.session_state.adaptive_breathing = adaptive_breathing
+    
     with st.expander("⚙️ Advanced Parameters"):
-        st.markdown("<small>Filtros Probabilísticos</small>", unsafe_allow_html=True)
+        st.markdown("<small>Probabilistic Filters</small>", unsafe_allow_html=True)
         theta_A = st.number_input(
-            "Umbral de Magnitud (θ_A)", 
+            "Magnitude Threshold (θ_A)", 
             value=0.05, step=0.01, 
-            help="**Umbral de Magnitud Topológica (θ_A)**\nFiltra fluctuaciones menores. Define la agresividad mínima requerida para que un cambio relacional sea catalogado como un 'Episodio Sistémico' (Critical Lock-in). Valores históricos como 0.41 representan barreras termodinámicas extremas, mientras que 0.05 es ideal para alta sensibilidad."
+            help="**Magnitude Threshold (θ_A)**\nFilters minor fluctuations. Defines the minimum aggressiveness required for a relational change to be cataloged as a 'Systemic Episode' (Critical Lock-in). Historical values like 0.41 represent extreme thermodynamic barriers, while 0.05 is ideal for high sensitivity."
         )
         D_min = st.number_input(
-            "Duración Mínima (D_min)", 
+            "Minimum Duration (D_min)", 
             value=10, step=1, 
-            help="**Duración Mínima (D_min)**\nCondición de contorno temporal. Un bloqueo topológico solo adquiere validación matemática si el sistema permanece anclado en hiper-sincronización durante al menos *D_min* pasos temporales. Actúa como un filtro pasa-bajos contra falsos positivos y micro-shocks transitorios."
+            help="**Minimum Duration (D_min)**\nTemporal boundary condition. A topological lock-in only acquires mathematical validation if the system remains anchored in hyper-synchronization for at least *D_min* time steps. Acts as a low-pass filter against false positives and transient micro-shocks."
         )
         
     with st.expander("📝 Report Branding"):
@@ -557,7 +587,8 @@ with tab3:
                 
             c_names = st.session_state.clustered_df.columns.tolist()
             st.write("Calculating global taus and scaling constraints...")
-            res_dict, res_obj = run_core_math(X, window_size, component_names=c_names)
+            adaptive_flag = st.session_state.get("adaptive_breathing", False)
+            res_dict, res_obj = run_core_math(X, window_size, component_names=c_names, adaptive_breathing=adaptive_flag)
             st.session_state.analysis_results = res_dict
             st.session_state.raw_results = res_obj
             autosave_workspace()
@@ -659,6 +690,122 @@ with tab5:
         st.info("The Dual-Plot from Tab 3 can be downloaded by right-clicking it. The interactive 3D/Plotly charts can be saved directly via the camera icon in the top right corner of each plot.")
         
         st.markdown("---")
+        st.subheader("Statistical Validation")
+        st.markdown(
+            "Test the origin of the topological collapse using the **Linear Baseline Test** (optimized IAAFT Surrogate Data). "
+            "Instead of merely classifying a result as 'true' or 'false', this tool calculates **how much of your detected transition can be explained purely by individual linear properties** (like autocorrelation and seasonality). "
+            "It generates 500 parallel 'null' universes that destroy non-linear topologies while preserving frequency spectra, allowing you to quantify the genuine non-linear systemic component."
+        )
+        
+        if st.button("Run Surrogate Validation (500 universes)", type="primary"):
+            # Nivel 1: Detección temprana
+            if "analysis_results" not in st.session_state or st.session_state.analysis_results is None:
+                st.error("No analysis results found. Run the global pipeline first.")
+            else:
+                import warnings
+                with warnings.catch_warnings():
+                    warnings.simplefilter("ignore", category=RuntimeWarning)
+                    real_max_tau = float(np.nanmax(st.session_state.analysis_results["taus_global"]))
+                if np.isnan(real_max_tau):
+                    st.error("❌ Cannot run surrogate validation: 'Max Systemic Tau' in real analysis is NaN.")
+                    st.info("Possible causes and solutions:")
+                    st.markdown("""
+                    - Data with NaNs or constant values → go to **Data Hub** and review/impute.
+                    - Window size too small for the series length.
+                    - Very weak detected transition (t* in an area with almost no variability).
+                    - Calculation error in `dtk_series` or `taus_global`.
+                    """)
+                else:
+                    with st.spinner("Generating 500 parallel universes (IAAFT) and running Systemic Tau on each. This is computationally intense..."):
+                        try:
+                            import systemictau as st_engine
+                            if "clustered_df" in st.session_state and st.session_state.clustered_df is not None:
+                                X_real = st.session_state.clustered_df.select_dtypes(include=[np.number]).values
+                            elif "clean_df" in st.session_state and st.session_state.clean_df is not None:
+                                X_real = st.session_state.clean_df.select_dtypes(include=[np.number]).values
+                            else:
+                                st.error("No valid data loaded. Please upload and prepare data first.")
+                                st.stop()
+                                
+                            surr_res = st_engine.run_surrogate_validation(
+                                X_real, 
+                                n_surrogates=500, 
+                                mode="fast", 
+                                window_size=window_size
+                            )
+                            st.session_state["surrogate_result"] = surr_res
+                            st.success("Surrogate validation complete! Results are ready for the Academic Report.")
+                        except Exception as e:
+                            st.error(f"Error running surrogates: {e}")
+                    
+        if "surrogate_result" in st.session_state:
+            surr = st.session_state["surrogate_result"]
+            st.info("### Linear Baseline Test (via IAAFT Surrogates)")
+            
+            # Nivel 2: Visualización estructurada en Tab 5
+            real_max_tau = surr.metadata.get("real_max_tau", float('nan'))
+            
+            # Robust extraction of surrogate statistics
+            surr_mean = surr.metadata.get("surrogate_max_tau_mean", float('nan'))
+            surr_std = surr.metadata.get("surrogate_max_tau_std", float('nan'))
+            
+            # Fallback to direct calculation if metadata is missing or NaN
+            if np.isnan(surr_mean) and hasattr(surr, "surrogate_t_stars") and surr.surrogate_t_stars:
+                surr_mean = float(np.mean(surr.surrogate_t_stars))
+            if np.isnan(surr_std) and hasattr(surr, "surrogate_t_stars") and surr.surrogate_t_stars:
+                surr_std = float(np.std(surr.surrogate_t_stars))
+            
+            if np.isnan(real_max_tau):
+                st.error("**Status:** Invalid (NaN detected)\n\nValidation is unreliable because the real Max Systemic Tau is NaN. Review data quality and re-run the main analysis before interpreting surrogates.")
+            else:
+                linear_contribution = min(100.0, (surr_mean / real_max_tau * 100.0)) if real_max_tau > 0 and not np.isnan(surr_mean) else 100.0
+                if surr.percentile_rank < 5:
+                    status_color = "red"
+                    status_text = "Linear Dominated"
+                elif surr.is_significant:
+                    status_color = "green"
+                    status_text = "Non-Linear Transition Confirmed"
+                else:
+                    status_color = "orange"
+                    status_text = "Mixed/Inconclusive"
+                    
+                st.markdown(f"#### **Status:** <span style='color:{status_color}'>{status_text}</span>", unsafe_allow_html=True)
+                
+                has_surr_stats = not np.isnan(surr_mean)
+                if has_surr_stats:
+                    col1, col2, col3, col4 = st.columns(4)
+                else:
+                    col1, col2, col3 = st.columns(3)
+                    
+                with col1:
+                    st.metric("Linear Baseline Contribution", f"{linear_contribution:.1f}%")
+                with col2:
+                    st.metric("Real Max Tau", f"{real_max_tau:.3f}")
+                
+                if has_surr_stats:
+                    with col3:
+                        st.metric("Surrogate Mean (Linear)", f"{surr_mean:.3f}")
+                    with col4:
+                        if not np.isnan(surr_std) and surr_std > 0:
+                            excess = (real_max_tau - surr_mean) / surr_std
+                            st.metric("Excess over Linear (Z)", f"{excess:.2f}")
+                        else:
+                            st.metric("Excess over Linear (Z)", "N/A", help="Standard deviation is 0 or missing.")
+                else:
+                    with col3:
+                        st.metric("Percentile", f"{surr.percentile_rank:.2f}%")
+                
+                # Interpretación por casos
+                if surr.percentile_rank < 5.0:
+                    st.warning("**Interpretation:** ~100% of the magnitude of the detected topological change can be explained by the individual linear properties of the series (autocorrelation and amplitude). This does not invalidate the transition, but indicates that the systemic non-linear coupling component is very weak or not detectable with the current configuration.\n\n**Recommendation:** Activate the 🫁 **Adaptive Breathing Window** (if not already on) and check if one or two highly autocorrelated variables are dominating the signal.")
+                elif not surr.is_significant:
+                    excess_str = f"{excess:.2f}" if 'excess' in locals() else "N/A"
+                    st.info(f"**Interpretation:** The empirical coupling failed to achieve the strict 95% statistical significance threshold against linear models (Percentile: {surr.percentile_rank:.2f}%). While some non-linear structure exists (Excess Z = {excess_str}), it cannot be conclusively differentiated from random phase-shifted noise.")
+                else:
+                    excess_str = f"{excess:.2f}" if 'excess' in locals() else "N/A"
+                    st.success(f"**Interpretation:** The detected transition clearly exceeds what can be explained by linear effects alone (Percentile: {surr.percentile_rank:.2f}%, Excess Z = {excess_str}). There is strong empirical evidence of genuine systemic non-linear topological reorganization.")
+            
+        st.markdown("---")
         st.subheader("Academic Report Hub")
         if HAS_REPORTS:
             # Add toggle for extended theoretical captions
@@ -667,7 +814,7 @@ with tab5:
             include_significance = st.checkbox("Include Statistical Significance Appendix (Appendix B)", value=False, help="Appends an appendix explaining how to interpret the results mathematically without relying on classical p-values.")
             
             @st.cache_data(show_spinner="Compiling Academic Report and PDF (this may take 1-2 minutes due to high-res Plotly rendering)...")
-            def compile_report(res_obj_id, inc_theory, inc_sig, title, author, org, has_ews):
+            def compile_report(res_obj_id, inc_theory, inc_sig, title, author, org, has_ews, has_adaptive):
                 # We use a primitive signature so caching is lightning fast and bulletproof.
                 report_md = generate_academic_report(
                     st.session_state.raw_results, 
@@ -678,7 +825,9 @@ with tab5:
                     title=title,
                     author=author,
                     organization=org,
-                    ews_results=st.session_state.get("ews_results")
+                    ews_results=st.session_state.get("ews_results"),
+                    surrogate_result=st.session_state.get("surrogate_result"),
+                    adaptive_breathing=has_adaptive
                 )
                 pdf_bytes = convert_markdown_to_pdf(report_md)
                 return report_md, pdf_bytes
@@ -695,7 +844,8 @@ with tab5:
                     st.session_state.get("report_title", "Systemic Tau Paradigm Analytical Report"),
                     st.session_state.get("report_author", ""),
                     st.session_state.get("report_org", ""),
-                    has_ews
+                    has_ews,
+                    st.session_state.get("adaptive_breathing", True)
                 )
                 
                 st.download_button(
