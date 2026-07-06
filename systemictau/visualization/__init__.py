@@ -13,6 +13,17 @@ ACCENT_TSTAR_LEGACY = "#EA580C"
 THRESHOLD_CHAOS = "#94A3B8"
 THRESHOLD_STABLE = "#64748B"
 
+from .tier_viz import plot_ontological_overview, plot_layer_details
+from .viz import plot_scale_detail
+
+__all__ = [
+    "plot_tau_evolution",
+    "plot_joint_episodes",
+    "plot_ontological_layers",
+    "plot_scale_detail",
+    "plot_ontological_overview",
+    "plot_layer_details"
+]
 
 def _check_matplotlib():
     """Helper to check if matplotlib is installed since it's an optional dependency."""

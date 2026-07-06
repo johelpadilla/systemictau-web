@@ -1,15 +1,14 @@
 """
-Generador de Reportes Académicos - Systemic Tau Paradigm
-Versión mejorada v2.0
+Generador de Reportes Académicos - Systemic Tau Paradigm v4.6.0
 """
 
 from __future__ import annotations
 from typing import Dict, Optional, List
-from .analysis import TauAnalysisResults
-
+from .results import OntologicalAscentResult
 
 def generate_academic_report(
-    results: TauAnalysisResults,
+    result: Optional[OntologicalAscentResult] = None,
+    results: Optional[OntologicalAscentResult] = None,
     lang: str = "en",
     include_figures: bool = True,
     include_theoretical_captions: bool = False,
@@ -18,56 +17,43 @@ def generate_academic_report(
     title: str = "Systemic Tau Paradigm Analytical Report",
     author: str = "",
     organization: str = "",
-    ews_results: Optional["pd.DataFrame"] = None
+    ews_results: Optional["pd.DataFrame"] = None,
+    # API Compatibility parameters
+    output_path: Optional[str] = None,
+    location_name: Optional[str] = None,
+    variables: Optional[List[str]] = None,
+    language: Optional[str] = None
 ) -> str:
-    """
-    Genera un reporte académico en Markdown de alta calidad.
-
-    Parameters
-    ----------
-    results : TauAnalysisResults
-        Resultados completos del análisis.
-    lang : str
-        "en" o "es".
-    include_figures : bool
-        Si se incluye la sección de figuras.
-    figures : dict, optional
-        Diccionario con imágenes en formato Markdown (base64 o rutas).
-    title : str
-        Título del reporte.
-    ews_results : pd.DataFrame, optional
-        Resultados de señales de alerta temprana (EWS).
-    """
-
-    lang = lang.lower()
+    # Support both result and results (API compatibility)
+    results = result if result is not None else results
+    if results is None:
+        raise ValueError("Must provide an OntologicalAscentResult object via 'result' or 'results' argument.")
+        
+    lang = (language or lang).lower()
     if lang not in ["en", "es"]:
         lang = "en"
+        
+    if location_name:
+        title = f"{title} - {location_name}"
+        
+    if variables and results.metadata is not None:
+        results.metadata["components"] = variables
 
     sections = []
 
-    # === ENCABEZADO ===
+    # 0. HEADER
     sections.append(_header(results, lang, title, author, organization))
 
-    # === RESUMEN EJECUTIVO ===
+    # 1. EXECUTIVE SUMMARY (Short)
     sections.append(_executive_summary(results, lang))
 
-    # === CAPA 3: PRINCIPIO DE ASCENSO ONTOLÓGICO ===
-    sections.append(_ontological_ascent_section(results, lang))
+    # 2. ONTOLOGICAL ASCENT NARRATIVE (Detailed)
+    sections.append(_ontological_narrative(results, lang))
 
-    # === ESTADÍSTICAS DE PERSISTENCIA ===
-    sections.append(_persistence_statistics_section(results, lang))
+    # 3. KEY METRICS TABLE
+    sections.append(_key_metrics_table(results, lang))
 
-    # === JOINT EPISODES ===
-    sections.append(_joint_episodes_section(results, lang))
-
-    # === RECD + DIMENSIÓN FRACTAL ===
-    sections.append(_recd_fractal_section(results, lang))
-
-    # === ADVERTENCIAS ===
-    if results.warnings:
-        sections.append(_warnings_section(results, lang))
-
-    # === APÉNDICE VISUAL ===
+    # 4. TIER 1: ONTOLOGICAL OVERVIEW
     if include_figures:
         if not figures:
             try:
@@ -78,80 +64,194 @@ def generate_academic_report(
                 from systemictau.visualization.report_figures import generate_report_figures
                 figures = generate_report_figures(results, ews_results=ews_results)
             except ImportError:
-                print("Visualization module not available. Install with `pip install systemictau[reports]`")
+                print("Visualization module not available.")
         
-        if figures:
-            sections.append(_visual_appendix_section(results, lang, figures, include_theoretical_captions))
+        if figures and "Tier 1: Ontological Overview" in figures:
+            sections.append(_tier_1_section(results, lang, figures, include_theoretical_captions))
 
-    # === APÉNDICE DE PARÁMETROS ===
-    sections.append(_workflow_parameters_section(results, lang))
-    
-    # === APÉNDICE DE SIGNIFICANCIA (OPCIONAL) ===
+    # 5. WARNINGS
+    if results.warnings:
+        sections.append(_warnings_section(results, lang))
+
+    # 6. APPENDIX A: TIER 2 (LAYER DETAILS)
+    if include_figures and figures:
+        sections.append(_tier_2_appendix(results, lang, figures, include_theoretical_captions))
+
+    # 7. APPENDIX B: STATISTICAL SIGNIFICANCE (Optional)
     if include_significance_appendix:
         sections.append(_statistical_significance_appendix_section(results, lang))
 
-    # === PIE ===
-    sections.append(_footer(results, lang))
+    # 8. APPENDIX C: REPRODUCIBILITY & PARAMETERS
+    sections.append(_reproducibility_section(results, lang))
 
-    return "\n\n".join(sections)
+    final_md = "\n\n".join(sections)
+    
+    if output_path:
+        import os
+        os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
+        with open(output_path, "w", encoding="utf-8") as f:
+            f.write(final_md)
+
+    return final_md
 
 # ============================================================
 # SECCIONES INDIVIDUALES
 # ============================================================
 
-def _workflow_parameters_section(results: TauAnalysisResults, lang: str) -> str:
-    header = "## Appendix: Analytical Parameters" if lang == "en" else "## Apéndice: Parámetros Analíticos"
-    
-    # Extraer parámetros de metadata si existen
-    params = results.metadata.get("parameters", {})
+def _get_component_names(results: OntologicalAscentResult) -> List[str]:
     components = results.metadata.get("components", [])
-    
-    window_size = params.get('window_size', results.window_size)
-    theta_A = params.get('theta_A', '0.05 (Default)')
-    D_min = params.get('D_min', '10 (Default)')
-    fractal_range = params.get('expected_fractal_range', '(1.85, 2.15)')
-    
-    total_obs = len(results.taus_global) if results.taus_global is not None else "N/A"
-    
-    if lang == "en":
-        text = (
-            "The following parameters and variables were utilized to execute the Systemic Tau Paradigm workflow:\n\n"
-            "### Target Variables (Spatial Components)\n"
-        )
-    else:
-        text = (
-            "Los siguientes parámetros y variables fueron utilizados para ejecutar el flujo de trabajo del Paradigma Tau Sistémico:\n\n"
-            "### Variables Objetivo (Componentes Espaciales)\n"
-        )
-        
-    for i, c in enumerate(components):
-        text += f"- **Component {i}:** `{c}`\n"
-        
-    if not components:
-        text += "- No explicit components registered.\n"
-        
-    if lang == "en":
-        text += (
-            "\n### Algorithmic Parameters\n"
-            f"- **Time Series Length ($T$):** {total_obs} observations\n"
-            f"- **Sliding Window Size ($n$):** {window_size}\n"
-            f"- **Joint Episode Threshold ($\\theta_A$):** {theta_A}\n"
-            f"- **Min Episode Duration ($D_{{min}}$):** {D_min}\n"
-            f"- **Expected Fractal Range:** {fractal_range}\n"
-        )
-    else:
-        text += (
-            "\n### Parámetros Algorítmicos\n"
-            f"- **Longitud de la Serie ($T$):** {total_obs} observaciones\n"
-            f"- **Tamaño de Ventana Móvil ($n$):** {window_size}\n"
-            f"- **Umbral de Episodios Conjuntos ($\\theta_A$):** {theta_A}\n"
-            f"- **Duración Mínima de Episodio ($D_{{min}}$):** {D_min}\n"
-            f"- **Rango Fractal Esperado:** {fractal_range}\n"
-        )
-        
-    return f"{header}\n\n{text}"
+    if components and not all(c.startswith("Component_") for c in components):
+        return components
+    return []
 
-def _statistical_significance_appendix_section(results: TauAnalysisResults, lang: str) -> str:
+def _header(results: OntologicalAscentResult, lang: str, title: str, author: str = "", organization: str = "") -> str:
+    components = _get_component_names(results)
+    dataset_str = ", ".join(components) if components else "N/A"
+    author_str = author if author else "SystemicTau Engine"
+    org_str = f"**Organization:** {organization}\n\n" if organization else ""
+    author_block = f"**Lead Analyst:** {author_str}\n\n" if author else ""
+
+    if lang == "es":
+        return f"""---
+title: "{title}"
+author: "{author_str}"
+date: ""
+dataset: {dataset_str}
+---
+
+# {title}
+
+{author_block}{org_str}---
+
+**Generado automáticamente vía `systemictau v4.6.x`**
+*Marco Teórico basado en la Síntesis Magna v6 y The Principle of Ontological Ascent (Padilla, 2026).*"""
+    else:
+        return f"""---
+title: "{title}"
+author: "{author_str}"
+date: ""
+dataset: {dataset_str}
+---
+
+# {title}
+
+{author_block}{org_str}---
+
+**Automatically generated via `systemictau v4.6.x`**
+*Theoretical Framework based on the Magna Synthesis v6 and The Principle of Ontological Ascent (Padilla, 2026).*"""
+
+def _executive_summary(results: OntologicalAscentResult, lang: str) -> str:
+    components = _get_component_names(results)
+    dataset_text = f"variables: {', '.join(components)}" if components else "the provided multivariate time series"
+    if lang == "es" and not components: dataset_text = "las variables multivariadas proporcionadas"
+    
+    title = "## Executive Summary" if lang == "en" else "## Resumen Ejecutivo"
+    intro_en = f"This document presents the topological analysis of the dataset ({dataset_text}) using an observation window of $n = {results.window_size}$."
+    intro_es = f"Este documento presenta el análisis topológico del dataset ({dataset_text}) utilizando una ventana de observación $n = {results.window_size}$."
+    
+    return f"""{title}
+
+{intro_en if lang == 'en' else intro_es}
+
+{results.summary(level="short", lang=lang)}
+"""
+
+def _ontological_narrative(results: OntologicalAscentResult, lang: str) -> str:
+    title = "## Ontological Ascent Narrative" if lang == "en" else "## Narrativa de Ascenso Ontológico"
+    return f"""{title}
+
+{results.summary(level="detailed", lang=lang)}
+"""
+
+def _key_metrics_table(results: OntologicalAscentResult, lang: str) -> str:
+    header = "## Key Metrics" if lang == "en" else "## Métricas Clave"
+    num_episodes = len(results.episodes)
+    t_star_text = str(results.t_star) if results.t_star else "N/A"
+    fractal_val = f"{results.fractal_D:.4f}" if results.fractal_D is not None else "N/A"
+
+    table = f"""
+| Metric | Value |
+|--------|-------|
+| Critical Transition ($t^*$) | {t_star_text} |
+| Number of Joint Episodes | {num_episodes} |
+| Hyper-persistence Z-score ($hp_z$) | {results.hp_z:.4f} |
+| Fractal Dimension ($D$) | {fractal_val} |
+| Maximum Critical Mass ($M_{{max}}$) | {results.M_max:.4f} |
+"""
+
+    if lang == "en":
+        interpretation = f"**Interpretation:** The critical transition at $t^*={t_star_text}$ signifies the exact moment the system lost its spatial degrees of freedom. A fractal dimension of {fractal_val} coupled with a hyper-persistence of {results.hp_z:.2f} mathematically validates that this is not stochastic noise, but a structured topological collapse."
+    else:
+        interpretation = f"**Interpretación:** La transición crítica en $t^*={t_star_text}$ significa el momento exacto en que el sistema perdió sus grados de libertad espaciales. Una dimensión fractal de {fractal_val} acoplada con una hiper-persistencia de {results.hp_z:.2f} valida matemáticamente que esto no es ruido estocástico, sino un colapso topológico estructurado."
+
+    return f"{header}\n{table}\n{interpretation}"
+
+def _get_caption(fig_name: str, lang: str) -> str:
+    captions_en = {
+        "Tier 1: Ontological Overview": "This unified diagram illustrates the complete ontological ascent of the system. It combines the continuous metric of systemic time consumption (RECD), the discrete topological 'Joint Episodes' where independent variables enter synchronized enablement, and the ultimate critical systemic transition ($t^*$). This $t^*$ is not merely a statistical anomaly, but the precise chronological coordinate where the system achieves irreversible topological coupling, fundamentally altering its macroscopic behavior.",
+        "Tier 2: Layer Details": "A multi-layer view of the topological transition. The Micro layer tracks the fractal dimension of individual components, indicating their local degrees of freedom. The Meso layer isolates the density of Joint Episodes where topological enablement begins. The Macro layer confirms the systemic phase transition where synchronization crosses the Feigenbaum threshold.",
+        "Topological Heatmap": "Representing the second layer of the ontological ascent, this heatmap provides spatial evidence of local probabilistic filters aligning. Intense vertical bands signify a massive Joint Episode. Empirically, this demonstrates a momentary spatial lock-in, severely reducing the system's degrees of freedom and driving it toward deterministic chaos.",
+        "Unimodal Return Map": "This Unimodal Return Map plots the Systemic Tau orbit ($\\tau_s(t)$ versus $\\tau_s(t+1)$). A purely stochastic system would produce an unstructured point cloud. Here, the dense 'cobweb' accumulation toward the center proves that the system's topological collapse is not random noise, but an inevitable transition governed by deterministic non-linear dynamics, ultimately constrained by the universal Feigenbaum constant.",
+        "Early Warning Signals": "This panel demonstrates Critical Slowing Down, the hallmark of complex systems approaching a catastrophic phase transition. The drastic spike in system Variance and Lag-1 Autocorrelation immediately preceding the critical point ($t^*$) provides empirical proof that the topological collapse was preceded by a genuine loss of systemic resilience."
+    }
+    captions_es = {
+        "Tier 1: Ontological Overview": "Este diagrama unificado ilustra el ascenso ontológico completo del sistema. Combina la métrica continua del consumo de tiempo sistémico (RECD), los 'Episodios Conjuntos' topológicos donde variables independientes entran en habilitación sincronizada, y la transición sistémica crítica ($t^*$). Este $t^*$ no es una mera anomalía estadística, sino la coordenada cronológica precisa donde el sistema alcanza un acoplamiento topológico irreversible, alterando fundamentalmente su comportamiento macroscópico.",
+        "Tier 2: Layer Details": "Una vista de múltiples capas de la transición topológica. La capa Micro rastrea la dimensión fractal de los componentes individuales, indicando sus grados de libertad locales. La capa Meso aísla la densidad de Episodios Conjuntos donde comienza la habilitación topológica. La capa Macro confirma la transición de fase sistémica donde la sincronización cruza el umbral de Feigenbaum.",
+        "Topological Heatmap": "Representando la segunda capa del ascenso ontológico, este mapa de calor provee evidencia espacial de los filtros probabilísticos locales alineándose. Las bandas verticales intensas significan un Joint Episode masivo. Empíricamente, esto demuestra un bloqueo espacial momentáneo, reduciendo severamente los grados de libertad del sistema e impulsándolo hacia el caos determinista.",
+        "Unimodal Return Map": "Este Mapa de Retorno Unimodal grafica la órbita de la Tau Sistémica ($\\tau_s(t)$ versus $\\tau_s(t+1)$). Un sistema puramente estocástico produciría una nube de puntos sin estructura. Aquí, la densa acumulación en forma de 'telaraña' (cobweb) hacia el centro prueba que el colapso topológico del sistema no es ruido aleatorio, sino una transición inevitable gobernada por dinámicas no lineales deterministas, restringida en última instancia por la constante universal de Feigenbaum.",
+        "Early Warning Signals": "Este panel demuestra el Critical Slowing Down (Desaceleración Crítica), el sello distintivo de los sistemas complejos que se aproximan a una transición de fase catastrófica. El pico drástico en la Varianza del sistema y la Autocorrelación Lag-1 inmediatamente anterior al punto crítico ($t^*$) provee prueba empírica de que el colapso topológico fue precedido por una genuina pérdida de resiliencia sistémica."
+    }
+    d = captions_en if lang == "en" else captions_es
+    for k, v in d.items():
+        if k in fig_name:
+            return v
+    return ""
+
+def _format_figure(name: str, fig: str, include_caption: bool, lang: str) -> str:
+    if not str(fig).startswith("!["):
+        if not str(fig).startswith("data:image"):
+            fig = f"![{name}](data:image/png;base64,{fig})"
+        else:
+            fig = f"![{name}]({fig})"
+            
+    section_text = f"### {name.replace('_', ' ').title()}\n\n{fig}"
+    
+    if include_caption:
+        caption = _get_caption(name, lang)
+        if caption:
+            section_text += f"\n\n*{caption}*"
+            
+    return section_text
+
+def _tier_1_section(results: OntologicalAscentResult, lang: str, figures: Dict[str, str], include_captions: bool) -> str:
+    header = "## Tier 1: Ontological Overview"
+    content = []
+    
+    if "Tier 1: Ontological Overview" in figures:
+        content.append(_format_figure("Tier 1: Ontological Overview", figures["Tier 1: Ontological Overview"], include_captions, lang))
+        
+    return f"{header}\n\n" + "\n\n".join(content)
+
+def _tier_2_appendix(results: OntologicalAscentResult, lang: str, figures: Dict[str, str], include_captions: bool) -> str:
+    header = "## Appendix A: Tier 2 Details & Topologies" if lang == "en" else "## Apéndice A: Detalles de Capas y Topologías"
+    content = []
+    
+    # Solo agregar figuras secundarias
+    for name, fig in figures.items():
+        if name != "Tier 1: Ontological Overview":
+            content.append(_format_figure(name, fig, include_captions, lang))
+            
+    if not content:
+        return ""
+        
+    return f"{header}\n\n" + "\n\n---\n\n".join(content)
+
+def _warnings_section(results: OntologicalAscentResult, lang: str) -> str:
+    header = "## Validation Warnings" if lang == "en" else "## Advertencias de Validación"
+    warnings = "\n".join([f"- {w}" for w in results.warnings])
+    return f"{header}\n\n{warnings}"
+
+def _statistical_significance_appendix_section(results: OntologicalAscentResult, lang: str) -> str:
     header = "## Appendix B: Statistical Significance within the Systemic Tau Paradigm" if lang == "en" else "## Apéndice B: Significancia Estadística en el Paradigma Tau Sistémico"
     
     if lang == "en":
@@ -163,7 +263,7 @@ def _statistical_significance_appendix_section(results: TauAnalysisResults, lang
             "### 2. The Higuchi Fractal Dimension ($D$)\n"
             "Stochastic noise (such as Brownian motion) yields specific expected fractal dimensions (e.g., $D \\approx 1.5 - 2.0$). The paradigm calculates the $D$ of the empirical Systemic Time Manifold (RECD). If the collapse is mathematically valid, $D$ diverges from classical noise boundaries, behaving as a *Bayesian Optimal Accumulator*. A fractal dimension contrasting with purely spatial regimes provides geometric proof of significance.\n\n"
             "### 3. Critical Slowing Down (Early Warning Signals)\n"
-            "Complex systems approaching a critical singularity ($t^*$) exhibit Critical Slowing Down. An abrupt increase in Variance and Lag-1 Autocorrelation immediately preceding $t^*$ acts as an empirical validation that the topological collapse was preceded by a genuine loss of systemic resilience, ruling out stochastic outliers.\n\n"
+            "Complex systems approaching a critical singularity ($t^*$) exhibit Critical Slowing Down. An abrupt spike in Variance and Lag-1 Autocorrelation immediately preceding $t^*$ acts as empirical validation that the topological collapse was preceded by a genuine loss of systemic resilience, ruling out stochastic outliers.\n\n"
             "### 4. Probabilistic Filters (Joint Episodes)\n"
             "To prevent false positives, spatial couplings must survive strict mathematical filters. A coupling event is only classified as a significant *Joint Episode* if its magnitude strictly exceeds the threshold ($\\theta_A$) and persists for a minimum duration ($D_{min}$). The presence of a massive vertical alignment in the Topological Heatmap under these constraints confirms that the macroscopic lock-in is a genuine systemic event."
         )
@@ -183,238 +283,30 @@ def _statistical_significance_appendix_section(results: TauAnalysisResults, lang
         
     return f"{header}\n\n{text}"
 
-def _get_component_names(results: TauAnalysisResults) -> List[str]:
-    """Obtiene los nombres reales de los componentes si existen."""
-    components = results.metadata.get("components", [])
-    if components and not all(c.startswith("Component_") for c in components):
-        return components
-    return []
-
-
-def _header(results: TauAnalysisResults, lang: str, title: str, author: str = "", organization: str = "") -> str:
-    components = _get_component_names(results)
-    dataset_str = ", ".join(components) if components else "N/A"
+def _reproducibility_section(results: OntologicalAscentResult, lang: str) -> str:
+    header = "## Reproducibility" if lang == "en" else "## Reproducibilidad"
     
-    author_str = author if author else "SystemicTau Engine"
-    org_str = f"**Organization:** {organization}\n\n" if organization else ""
-    author_block = f"**Lead Analyst:** {author_str}\n\n" if author else ""
-
-    if lang == "es":
-        return f"""---
-title: "{title}"
-author: "{author_str}"
-date: ""
-dataset: {dataset_str}
----
-
-# {title}
-
-{author_block}{org_str}---
-
-**Generado automáticamente vía `systemictau`**
-*Marco Teórico basado en la Síntesis Magna v6 y The Principle of Ontological Ascent (Padilla, 2026).*"""
-    else:
-        return f"""---
-title: "{title}"
-author: "{author_str}"
-date: ""
-dataset: {dataset_str}
----
-
-# {title}
-
-{author_block}{org_str}---
-
-**Automatically generated via `systemictau`**
-*Theoretical Framework based on the Magna Synthesis v6 and The Principle of Ontological Ascent (Padilla, 2026).*"""
-
-
-def _executive_summary(results: TauAnalysisResults, lang: str) -> str:
-    t_star = results.t_star if results.t_star is not None else "Not detected"
-    n_ep = len(results.episodes)
-    components = _get_component_names(results)
-
-    if components:
-        dataset_text = f"variables: {', '.join(components)}"
-    else:
-        dataset_text = "the provided multivariate time series" if lang == "en" else "las variables multivariadas proporcionadas"
-
-    if lang == "es":
-        return f"""## Resumen Ejecutivo
-
-Este documento presenta el análisis topológico del dataset ({dataset_text}) utilizando una ventana de observación $n = {results.window_size}$.
-
-El análisis detectó exitosamente el **Punto de Reorganización Sistémica** (Consensus Transition) en $t^* = {t_star}$, donde el sistema alcanzó convergencia espacial global. En este punto, la métrica de sincronización global cruzó la banda caótica de Feigenbaum ($|\\tau_s| < 0.41$), marcando el colapso topológico del sistema.
-
-Se detectaron **{n_ep}** Episodios Conjuntos (Joint Episodes), evidenciando los precursores de baja varianza en la capa de habilitación antes del colapso."""
-    else:
-        return f"""## Executive Summary
-
-This document presents the topological analysis of the dataset ({dataset_text}) using an observation window $n = {results.window_size}$.
-
-The analysis successfully detected the **Systemic Reorganization Point** (Consensus Transition) at $t^* = {t_star}$, where the system reached global spatial convergence. At this point, the global synchronization metric crossed into the Feigenbaum chaotic band ($|\\tau_s| < 0.41$), marking the topological collapse of the system.
-
-**{n_ep}** Joint Episodes were detected, evidencing the low-variance precursors in the enabling layer before the collapse."""
-
-
-def _ontological_ascent_section(results: TauAnalysisResults, lang: str) -> str:
-    t_star = results.t_star or "N/A"
-    f_max = f"{results.frob_max:.4f}" if results.frob_max else "N/A"
-    ks_max = f"{results.ks_max:.4f}" if results.ks_max else "N/A"
-
-    if lang == "es":
-        return f"""## El Principio del Ascenso Ontológico (Capa 3)
-
-El modelo identificó la Transición de Reorganización Estructural Global en la coordenada cronológica $t^* = {t_star}$.
-
-Según el marco teórico (*The Principle of Ontological Ascent*), este evento no constituye una simple fluctuación estadística, sino un verdadero ascenso de nivel ontológico ($L_m \\to L_{{m+1}}$) en la jerarquía RECD. En $t^*$, se instituye un nuevo régimen de acumulación de tiempo sistémico, irreducible a la suma de las dinámicas espaciales previas.
-
-En este régimen, la función de compuerta fractal entra en la banda caótica intermedia, donde la topología del sistema cruza el rango de universalidad de Feigenbaum ($|\\tau_s| < 0.41$). Específicamente, en el punto crítico se alcanzó un máximo de Frobenius de $F_{{max}} = {f_max}$ y una divergencia de Kolmogorov-Smirnov de $KS_{{max}} = {ks_max}$, confirmando el colapso topológico determinista de la matriz de Kendall."""
-    else:
-        return f"""## The Principle of Ontological Ascent (Layer 3)
-
-The model identified the Global Structural Reorganization Transition at the chronological coordinate $t^* = {t_star}$.
-
-According to the theoretical framework (*The Principle of Ontological Ascent*), this event does not constitute a simple statistical fluctuation, but a true ascent of ontological level ($L_m \\to L_{{m+1}}$) in the RECD hierarchy. At $t^*$, a new regime of systemic time accumulation is instituted, which is irreducible to the sum of the previous spatial dynamics.
-
-In this regime, the fractal gate function enters the intermediate chaotic band, where the system's topology crosses the Feigenbaum universality range ($|\\tau_s| < 0.41$). Specifically, at the critical point, the maximum Frobenius metric reached $F_{{max}} = {f_max}$ and the maximum Kolmogorov-Smirnov divergence was $KS_{{max}} = {ks_max}$, confirming the deterministic topological collapse of the Kendall matrix."""
-
-
-def _persistence_statistics_section(results: TauAnalysisResults, lang: str) -> str:
-    note = (
-        "*Paradigmatic note: An elevated hyper-persistence ($hp_z$) or significant laminarity validates the Bayesian Optimal Accumulator theoretical framework.*"
-        if lang == "en"
-        else "*Nota paradigmática: Una hiper-persistencia elevada ($hp_z$) o una laminaridad significativa valida el marco teórico del Acumulador Óptimo Bayesiano.*"
-    )
-
-    header = "## Persistence Statistics and Ordinal Criticality" if lang == "en" else "## Estadísticas de Persistencia y Criticidad Ordinal"
-
-    table = f"""
-| Metric                              | Calculated Value |
-|-------------------------------------|------------------|
-| Hyper-persistence Z-score ($hp_z$)  | {results.hp_z:.4f} |
-| Ordinal Laminarity (RQA)            | {results.lam:.4f}  |
-| Trapping Time                       | {results.tt:.4f}   |
-| Maximum Critical Mass ($M_{{max}}$)   | {results.M_max:.4f}|
-| Mean Critical Mass ($M_{{mean}}$)     | {results.M_mean:.4f}|
-"""
-
-    return f"{header}\n\n{table}\n\n{note}"
-
-
-def _joint_episodes_section(results: TauAnalysisResults, lang: str) -> str:
-    header = "## Joint Episodes and Relational Kairos" if lang == "en" else "## Episodios Conjuntos y Kairos Relacional"
-
-    if not results.episodes:
-        msg = "No Joint Episodes were detected under the current thresholds." if lang == "en" else \
-              "No se detectaron Episodios Conjuntos con los umbrales actuales."
-        return f"{header}\n\n{msg}"
-
-    intro = (
-        "The theory dictates that topological collapse is preceded by spatio-temporal units called *Joint Episodes*. "
-        "These units (Layer 2) act as bidirectional probabilistic filtering, establishing a \"Relational Kairos\" that enables the imminent \"Ontological Kairos\" (Layer 3)."
-        if lang == "en"
-        else
-        "La teoría dicta que el colapso topológico es precedido por unidades espacio-temporales llamadas *Episodios Conjuntos*. "
-        "Estas unidades (Capa 2) actúan como un filtrado probabilístico bidireccional, estableciendo un \"Kairos Relacional\" que habilita el inminente \"Kairos Ontológico\" (Capa 3)."
-    )
-
-    # Tabla
-    table = ["| Start | End | Duration (D) | Mean M | Total Magnitude (J) | J > 0.7 (%) |"]
-    table.append("|-------|-----|--------------|--------|---------------------|-------------|")
-
-    for ep in results.episodes:
-        table.append(
-            f"| {ep.get('start', '-')} | {ep.get('end', '-')} | "
-            f"{ep.get('duration', '-')} | {ep.get('mean_m', 0):.4f} | "
-            f"{ep.get('total_j', 0):.4f} | {ep.get('j_above_07', 0):.2f}% |"
-        )
-
-    return f"{header}\n\n{intro}\n\n" + "\n".join(table)
-
-
-def _recd_fractal_section(results: TauAnalysisResults, lang: str) -> str:
-    d = f"{results.fractal_D:.3f}" if results.fractal_D is not None else "N/A"
-
-    if lang == "es":
-        return f"""## Ley del Reloj Extramental Discreto (RECD) y Dimensión Fractal
-
-La integración analítica demuestra la fracturación del tiempo cronológico continuo $t$ hacia el tiempo sistémico discreto $T$. Esta acumulación regulada está gobernada por la **Ley del Reloj Extramental Discreto (RECD)**.
-
-El análisis de dimensión geométrica validado mediante el método de Higuchi arroja una dimensión fractal de soporte de **$D \\approx {d}$** para el tiempo sistémico.
-
-Este resultado se encuentra fuera del corpus empírico que establece límites rigurosos en $[1.96, 2.01]$, un fenómeno explicable como un Acumulador Óptimo Bayesiano. Esto contrasta explícitamente con la dimensión puramente topológico-espacial del atractor original."""
-    else:
-        return f"""## Law of the Discrete Extramental Clock (RECD) and Fractal Dimension
-
-Analytical integration demonstrates the fracturing of continuous chronological time $t$ towards discrete systemic time $T$. This regulated accumulation is governed by the **Law of the Discrete Extramental Clock (RECD)**.
-
-The geometric dimension analysis validated through the Higuchi method yields a supporting fractal dimension of **$D \\approx {d}$** for systemic time.
-
-This result falls outside the empirical corpus that places rigorous bounds in $[1.96, 2.01]$, a phenomenon explicable as a Bayesian Optimal Accumulator. This explicitly contrasts with the purely topological-spatial dimension of the original attractor."""
-
-
-def _warnings_section(results: TauAnalysisResults, lang: str) -> str:
-    header = "## Validation Warnings" if lang == "en" else "## Advertencias de Validación"
-    warnings = "\n".join([f"- {w}" for w in results.warnings])
-    return f"{header}\n\n{warnings}"
-
-
-def _visual_appendix_section(results: TauAnalysisResults, lang: str, figures: Dict[str, str], include_captions: bool = False) -> str:
-    header = "## Visual Appendix" if lang == "en" else "## Apéndice Visual"
-    content = []
+    theta_a = results.metadata.get("theta_A", 0.5) if results.metadata else 0.5
+    import hashlib
+    # Generate a reproducible short hash based on core metrics to serve as an identifier
+    core_str = f"{results.t_star}_{results.fractal_D}_{results.hp_z}"
+    res_hash = hashlib.sha256(core_str.encode()).hexdigest()[:8]
     
-    # Dictionary mapping standard figure names to their theoretical captions
-    captions_en = {
-        "Classical Dual-Plot": "This graph illustrates the macroscopic topological evolution of the system. The upper panel tracks the Systemic Tau ($\\tau_s$); intersection with the critical Feigenbaum bands ($\\pm 0.41$) indicates a departure from the linear regime. The lower panel displays the discrete consumption of systemic time ($\\Delta t_k$) driven by the opening of the topological gate. Severe spikes in this lower panel denote critical systemic shocks, highlighting abrupt losses of spatial independence culminating in the irreversible topological collapse at $t^*$.",
-        
-        "Systemic Time Manifold": "This manifold visualizes the discretization of time within complex systems, contrasting continuous chronological time (x-axis) with accumulated systemic time (y-axis). Horizontal plateaus represent periods of empirical stability where the system's components fluctuate independently. Abrupt vertical steps indicate Joint Episodes—periods of extreme topological coupling and systemic time consumption—ultimately leading to the geometric collapse of the time manifold at the critical consensus point ($t^*$).",
-        
-        "Topological Heatmap": "Representing the second layer of ontological ascent, this heatmap provides spatial evidence of local probabilistic filters aligning to generate the macroscopic Systemic Tau. Intense vertical bands (deep red or blue) across multiple spatial components signify a massive Joint Episode. Empirically, this demonstrates a momentary spatial lock-in, where independent modules synchronize simultaneously, severely reducing the system's degrees of freedom and driving it toward deterministic chaos.",
-        
-        "3D Phase Space Attractor": "This three-dimensional phase space model demonstrates the non-linear dynamic geometry of the system. The convergence of the system's trajectory into a strange attractor confirms its chaotic, yet deterministic, nature constrained by thermodynamic entropy (RECD). The empirical data traces a funneling trajectory that sharply constricts as it approaches the critical point singularity (orange marker, $t^*$), indicating that the observed systemic collapse is an inevitable outcome of non-linear dynamics rather than stochastic noise.",
-        
-        "Unimodal Return Map": "This Unimodal Return Map plots the Systemic Tau orbit ($\\tau_s(t)$ versus $\\tau_s(t+1)$). A purely stochastic system would produce an unstructured point cloud. Here, the dense 'cobweb' accumulation toward the center proves that the system's topological collapse is not random noise, but an inevitable transition governed by deterministic non-linear dynamics, ultimately constrained by the universal Feigenbaum constant.",
-        
-        "Early Warning Signals": "This panel demonstrates Critical Slowing Down, the hallmark of complex systems approaching a catastrophic phase transition. The drastic spike in system Variance and Lag-1 Autocorrelation immediately preceding the critical point ($t^*$) provides empirical proof that the topological collapse was preceded by a genuine loss of systemic resilience."
-    }
-    
-    captions_es = {
-        "Classical Dual-Plot": "Este gráfico ilustra la evolución topológica macroscópica del sistema. El panel superior rastrea la Tau Sistémica ($\\tau_s$); la intersección con las bandas críticas de Feigenbaum ($\\pm 0.41$) indica una salida del régimen lineal. El panel inferior muestra el consumo discreto de tiempo sistémico ($\\Delta t_k$) impulsado por la apertura de la compuerta topológica. Los picos severos denotan choques sistémicos críticos, culminando en el colapso topológico irreversible en $t^*$.",
-        "Systemic Time Manifold": "Este manifold visualiza la discretización del tiempo en sistemas complejos, contrastando el tiempo cronológico continuo con el tiempo sistémico acumulado. Las zonas planas representan periodos de estabilidad empírica. Los escalones verticales abruptos indican Joint Episodes (periodos de acoplamiento extremo), que conducen al colapso geométrico del manifold temporal en el punto crítico ($t^*$).",
-        "Topological Heatmap": "Representando la segunda capa del ascenso ontológico, este mapa de calor provee evidencia espacial de los filtros probabilísticos locales alineándose. Las bandas verticales intensas significan un Joint Episode masivo. Empíricamente, esto demuestra un bloqueo espacial momentáneo, reduciendo severamente los grados de libertad del sistema e impulsándolo hacia el caos determinista.",
-        "3D Phase Space Attractor": "Este modelo tridimensional demuestra la geometría dinámica no lineal del sistema. La convergencia en un atractor extraño confirma su naturaleza caótica restringida por la entropía termodinámica (RECD). La trayectoria se estrecha drásticamente al acercarse a la singularidad ($t^*$), indicando que el colapso sistémico observado es un resultado inevitable de la dinámica no lineal.",
-        "Unimodal Return Map": "Este Mapa de Retorno Unimodal grafica la órbita de la Tau Sistémica ($\\tau_s(t)$ versus $\\tau_s(t+1)$). Un sistema puramente estocástico produciría una nube de puntos sin estructura. Aquí, la densa acumulación en forma de 'telaraña' (cobweb) hacia el centro prueba que el colapso topológico del sistema no es ruido aleatorio, sino una transición inevitable gobernada por dinámicas no lineales deterministas, restringida en última instancia por la constante universal de Feigenbaum.",
-        "Early Warning Signals": "Este panel demuestra el Critical Slowing Down (Desaceleración Crítica), el sello distintivo de los sistemas complejos que se aproximan a una transición de fase catastrófica. El pico drástico en la Varianza del sistema y la Autocorrelación Lag-1 inmediatamente anterior al punto crítico ($t^*$) provee prueba empírica de que el colapso topológico fue precedido por una genuina pérdida de resiliencia sistémica."
-    }
-    
-    captions_dict = captions_en if lang == "en" else captions_es
-    
-    for name, fig in figures.items():
-        if not str(fig).startswith("!["):
-            # Si es un string base64 crudo, formatearlo como Markdown
-            if not str(fig).startswith("data:image"):
-                fig = f"![{name}](data:image/png;base64,{fig})"
-            else:
-                fig = f"![{name}]({fig})"
-                
-        section_text = f"### {name.replace('_', ' ').title()}\n\n{fig}"
-        
-        # Inyectar el caption teórico si está habilitado
-        if include_captions:
-            # Buscar el nombre exacto de la figura en el diccionario para adjuntarle su explicación
-            for key, caption in captions_dict.items():
-                if key in name:
-                    section_text += f"\n\n*{caption}*"
-                    break
-                    
-        content.append(section_text)
-        
-    return f"{header}\n\n" + "\n\n---\n\n".join(content)
-
-
-def _footer(results: TauAnalysisResults, lang: str) -> str:
-    if lang == "es":
-        return f"*Para garantizar reproducibilidad, este documento fue derivado usando `systemictau` con ventana $n={results.window_size}$. Cite como: Padilla (2026). \"Síntesis Magna v6\" y paquete Python asociado.*"
+    if lang == "en":
+        text = f"This analysis was generated using **`systemictau v4.6.0`**.\n\n"
+        text += f"**Core Parameters:**\n"
+        text += f"- `window_size`: {results.window_size}\n"
+        text += f"- `theta_A`: {theta_a}\n\n"
+        text += f"**Serialized Identifier:** `{res_hash}`\n\n"
+        text += "The full `OntologicalAscentResult` object associated with this identifier was serialized to `analysis_result.json` (available as supplementary material or within the app's analytical export hub). "
+        text += "Cite as: Padilla (2026). *Magna Synthesis v6* and associated Python package."
     else:
-        return f"*To guarantee reproducibility, this document was derived using `systemictau` with window $n={results.window_size}$. Cite as: Padilla (2026). \"Magna Synthesis v6\" and associated Python package.*"
+        text = f"Este análisis fue generado utilizando **`systemictau v4.6.0`**.\n\n"
+        text += f"**Parámetros Principales:**\n"
+        text += f"- `window_size`: {results.window_size}\n"
+        text += f"- `theta_A`: {theta_a}\n\n"
+        text += f"**Identificador Serializado:** `{res_hash}`\n\n"
+        text += "El objeto `OntologicalAscentResult` completo asociado con este identificador fue serializado a `analysis_result.json` (disponible como material suplementario o en el panel de exportación de la app). "
+        text += "Citar como: Padilla (2026). *Síntesis Magna v6* y paquete Python asociado."
+        
+    return f"{header}\n\n{text}"

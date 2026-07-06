@@ -1,4 +1,4 @@
-__version__ = "3.0.0"
+__version__ = "4.6.0"
 from .core import compute_taus, systemic_tau, SystemicTauResult
 from .recd import compute_recd_increments, accumulate_time, gate_function
 from .layers import (
@@ -12,9 +12,11 @@ from .layers import (
     consensus_transition
 )
 from .fractal import estimate_higuchi_dimension
-from .report import generate_academic_report
+from .reporting import generate_academic_report
 from .panel import prepare_multivariate_timeseries, run_full_tau_analysis
-from .analysis import run_full_analysis, TauAnalysisResults
+from .analysis import run_full_analysis
+from .results import OntologicalAscentResult
+from .robustness import run_sensitivity_analysis
 from .generators import ChaosGenerator
 from .visualization import plot_tau_evolution, plot_joint_episodes, plot_ontological_layers
 from .data import preprocess, from_dataframe, from_xarray
@@ -45,7 +47,7 @@ __all__ = [
     
     # Orquestador del pipeline completo
     "run_full_analysis",
-    "TauAnalysisResults",
+    "OntologicalAscentResult",
     
     # RECD & Time Accumulation
     "compute_recd_increments",

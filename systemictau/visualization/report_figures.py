@@ -2,11 +2,11 @@ import base64
 import io
 from typing import Dict, Optional
 
-from systemictau.analysis import TauAnalysisResults
+from systemictau.results import OntologicalAscentResult
 
 import pandas as pd
 
-def generate_report_figures(results: TauAnalysisResults, ews_results: Optional[pd.DataFrame] = None) -> Dict[str, str]:
+def generate_report_figures(results: OntologicalAscentResult, ews_results: Optional[pd.DataFrame] = None) -> Dict[str, str]:
     """
     Generates all core topological figures for the academic report in base64 format.
     Wraps each figure in a try-except block to ensure robustness.
@@ -45,26 +45,22 @@ def generate_report_figures(results: TauAnalysisResults, ews_results: Optional[p
         }
     }
     
-    # Matplotlib Dual-Plot
+    # Tier 1: Ontological Overview
     try:
-        from systemictau.visualization.viz import plot_scale_detail
+        from systemictau.visualization.tier_viz import plot_ontological_overview
         import matplotlib.pyplot as plt
-        fig_dual = plot_scale_detail("Global Scale", res_dict)
+        fig_t1 = plot_ontological_overview(results)
         buf = io.BytesIO()
-        fig_dual.savefig(buf, format='png', dpi=300, bbox_inches='tight')
+        fig_t1.savefig(buf, format='png', dpi=300, bbox_inches='tight')
         buf.seek(0)
-        figures_dict["Classical Dual-Plot"] = base64.b64encode(buf.read()).decode('utf-8')
-        plt.close(fig_dual)
+        figures_dict["Tier 1: Ontological Overview"] = base64.b64encode(buf.read()).decode('utf-8')
+        plt.close(fig_t1)
     except Exception as e:
-        print(f"Failed to generate Classical Dual-Plot: {e}")
+        print(f"Failed to generate Tier 1: {e}")
         
-    # Plotly Systemic Time Manifold
-    try:
-        from systemictau.visualization.monumental_viz import plot_discretization_manifold
-        fig_manifold = plot_discretization_manifold(res_dict)
-        figures_dict["Systemic Time Manifold"] = base64.b64encode(fig_manifold.to_image(format="png", scale=2)).decode('utf-8')
-    except Exception as e:
-        print(f"Failed to generate Systemic Time Manifold: {e}")
+    # Removed Tier 2: Layer Details from report (per v4.6.0 plan)
+
+    # Removed Classical Dual-Plot and Systemic Time Manifold from report
         
     # Plotly Topological Heatmap
     if res_dict.get("taus_per_module") is not None and len(res_dict["taus_per_module"]) > 0:
@@ -75,13 +71,7 @@ def generate_report_figures(results: TauAnalysisResults, ews_results: Optional[p
         except Exception as e:
             print(f"Failed to generate Topological Heatmap: {e}")
             
-    # Plotly 3D Phase Space Attractor
-    try:
-        from systemictau.visualization.monumental_viz import plot_3d_strange_attractor
-        fig_3d = plot_3d_strange_attractor(res_dict)
-        figures_dict["3D Phase Space Attractor"] = base64.b64encode(fig_3d.to_image(format="png", scale=2)).decode('utf-8')
-    except Exception as e:
-        print(f"Failed to generate 3D Phase Space Attractor: {e}")
+    # Removed 3D Phase Space Attractor from report
         
     # Plotly Unimodal Return Map (Cobweb)
     try:

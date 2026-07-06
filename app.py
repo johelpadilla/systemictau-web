@@ -290,11 +290,12 @@ with st.sidebar:
     )
 
 # Main Layout
-tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
+tab1, tab2, tab3, tab4, tab7, tab5, tab6 = st.tabs([
     "📊 Data Hub & Health", 
     "🌐 Ontological Scales", 
     "📈 Systemic Analysis", 
     "🌀 EWS & Diagnostics", 
+    "🛡️ Robustness & Tiers",
     "💾 Export Center",
     "🔬 Meta-Analysis"
 ])
@@ -346,16 +347,16 @@ with tab1:
         )
         
         st.write("")
-        st.markdown("### 🧪 Datasets de Prueba Integrados")
-        st.info("**¿No tienes datos a la mano?** Explora el potencial del motor Systemic Tau cargando nuestro dataset validado metodológicamente.")
+        st.markdown("### 🧪 Built-in Test Datasets")
+        st.info("**Don't have data on hand?** Explore the potential of the Systemic Tau engine by loading our methodologically validated dataset.")
         
-        if st.button("🦠 Cargar Dataset: Brote de Dengue (DengAI)"):
+        if st.button("🦠 Load Dataset: Dengue Outbreak (DengAI)"):
             if os.path.exists("data/datos_dengai_completo.csv"):
                 st.session_state.raw_df = pd.read_csv("data/datos_dengai_completo.csv")
-                st.success("✅ **Dataset de Epidemia de Dengue cargado.** Este dataset contiene variables climáticas y de vegetación. Ve a 'Data Health' para iniciar el preprocesamiento y luego a 'Ontological Scales'.")
+                st.success("✅ **Dengue Epidemic Dataset loaded.** This dataset contains climate and vegetation variables. Go to 'Data Health' to start preprocessing and then to 'Ontological Scales'.")
                 st.rerun()
             else:
-                st.error("Archivo de dataset de ejemplo no encontrado en la ruta 'data/'.")
+                st.error("Example dataset file not found in the 'data/' path.")
     
     if uploaded_file is not None:
         try:
@@ -665,37 +666,46 @@ with tab5:
             # Add toggle for statistical significance appendix
             include_significance = st.checkbox("Include Statistical Significance Appendix (Appendix B)", value=False, help="Appends an appendix explaining how to interpret the results mathematically without relying on classical p-values.")
             
-            with st.status("Compiling Academic Report...", expanded=True) as status:
-                st.write("Generating mathematical logic...")
-                st.write("Embedding high-res Base64 figures...")
-                
-                # The systemictau package now handles generating and safely embedding 
-                # all base64 figures automatically when include_figures=True.
+            @st.cache_data(show_spinner="Compiling Academic Report and PDF (this may take 1-2 minutes due to high-res Plotly rendering)...")
+            def compile_report(res_obj_id, inc_theory, inc_sig, title, author, org, has_ews):
+                # We use a primitive signature so caching is lightning fast and bulletproof.
                 report_md = generate_academic_report(
                     st.session_state.raw_results, 
                     lang='en', 
                     include_figures=True,
-                    include_theoretical_captions=include_theory,
-                    include_significance_appendix=include_significance,
-                    title=st.session_state.get("report_title", "Systemic Tau Paradigm Analytical Report"),
-                    author=st.session_state.get("report_author", ""),
-                    organization=st.session_state.get("report_org", ""),
+                    include_theoretical_captions=inc_theory,
+                    include_significance_appendix=inc_sig,
+                    title=title,
+                    author=author,
+                    organization=org,
                     ews_results=st.session_state.get("ews_results")
                 )
-                
-                status.update(label="Report Compilation Complete", state="complete", expanded=False)
-                
-            st.download_button(
-                label="⬇️ Download Academic Report (.md)",
-                data=report_md,
-                file_name="systemic_tau_academic_report.md",
-                mime="text/markdown",
-                type="primary"
-            )
-            
-            # Create PDF equivalent
-            try:
                 pdf_bytes = convert_markdown_to_pdf(report_md)
+                return report_md, pdf_bytes
+
+            # We use the unique memory id of raw_results to know if it changed
+            res_id = id(st.session_state.raw_results)
+            has_ews = st.session_state.get("ews_results") is not None
+            
+            try:
+                report_md, pdf_bytes = compile_report(
+                    res_id, 
+                    include_theory, 
+                    include_significance, 
+                    st.session_state.get("report_title", "Systemic Tau Paradigm Analytical Report"),
+                    st.session_state.get("report_author", ""),
+                    st.session_state.get("report_org", ""),
+                    has_ews
+                )
+                
+                st.download_button(
+                    label="⬇️ Download Academic Report (.md)",
+                    data=report_md,
+                    file_name="systemic_tau_academic_report.md",
+                    mime="text/markdown",
+                    type="primary"
+                )
+                
                 st.download_button(
                     label="📄 Download Academic Report (.pdf)",
                     data=pdf_bytes,
@@ -704,7 +714,7 @@ with tab5:
                     type="secondary"
                 )
             except Exception as e:
-                st.warning(f"Could not generate PDF: {e}")
+                st.warning(f"Could not generate Report/PDF: {e}")
             
             with st.expander("Preview Academic Report", expanded=False):
                 st.markdown(report_md)
@@ -765,3 +775,57 @@ with tab6:
                     st.plotly_chart(fig, width="stretch")
                 else:
                     st.warning("No valid RECD data found in the uploaded .tau files.")
+
+# ----------------- TAB 7: ROBUSTNESS & NARRATIVE (v4.6.0) -----------------
+with tab7:
+    st.header("🛡️ Robustness & Tiered Narrative")
+    st.write("Evaluate the mathematical stability of the topological transition and explore the ontological narrative.")
+    
+    if st.session_state.ews_results is None:
+        st.warning("Please run the analysis in the Systemic Analysis tab first.")
+    else:
+        st.subheader("Tier 1: Ontological Overview")
+        st.info("A unified, publication-ready overview of the ontological ascent.")
+        from systemictau.visualization.tier_viz import plot_ontological_overview, plot_layer_details
+        
+        # We already cached res_obj as `raw_results` during the Systemic Analysis run.
+        if "raw_results" in st.session_state and st.session_state.raw_results is not None:
+            res_obj = st.session_state.raw_results
+            
+            fig_t1 = plot_ontological_overview(res_obj)
+            st.pyplot(fig_t1)
+            
+            st.divider()
+            st.subheader("Tier 2: Layer Detail")
+            fig_t2 = plot_layer_details(res_obj)
+            st.pyplot(fig_t2)
+            
+            st.divider()
+            st.subheader("Statistical Robustness (Noise Sweeps)")
+            st.write("Test if $t^*$ remains mathematically bounded under varying levels of Gaussian noise.")
+            
+            col1, col2 = st.columns(2)
+            with col1:
+                noise_levels_input = st.multiselect("Noise Levels", [0.05, 0.10, 0.15, 0.20], default=[0.05, 0.10])
+            with col2:
+                iterations = st.number_input("Iterations per level", min_value=1, max_value=10, value=3)
+                
+            if st.button("Run Sensitivity Analysis"):
+                if "clustered_df" in st.session_state and st.session_state.clustered_df is not None:
+                    with st.spinner("Injecting noise and perturbing manifold..."):
+                        from systemictau.robustness import run_sensitivity_analysis
+                        
+                        rob_report = run_sensitivity_analysis(
+                            X=st.session_state.clustered_df.values,
+                            window_size=window_size,
+                            theta_A=theta_A,
+                            D_min=D_min,
+                            noise_levels=noise_levels_input,
+                            iterations_per_level=iterations,
+                            component_names=st.session_state.clustered_df.columns.tolist()
+                        )
+                        
+                        st.success("Sensitivity Analysis Complete!")
+                        st.json(rob_report)
+                else:
+                    st.error("Data not found. Please upload a dataset.")
