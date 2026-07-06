@@ -3,7 +3,7 @@ Generador de Reportes Académicos - Systemic Tau Paradigm v4.6.0
 """
 
 from __future__ import annotations
-from typing import Dict, Optional, List
+from typing import Dict, Optional, List, Any
 from .results import OntologicalAscentResult
 
 def generate_academic_report(
@@ -18,6 +18,7 @@ def generate_academic_report(
     author: str = "",
     organization: str = "",
     ews_results: Optional["pd.DataFrame"] = None,
+    surrogate_result: Optional[Any] = None,
     # API Compatibility parameters
     output_path: Optional[str] = None,
     location_name: Optional[str] = None,
@@ -80,8 +81,12 @@ def generate_academic_report(
     # 7. APPENDIX B: STATISTICAL SIGNIFICANCE (Optional)
     if include_significance_appendix:
         sections.append(_statistical_significance_appendix_section(results, lang))
+        
+    # X. APPENDIX C: IAAFT SURROGATE VALIDATION
+    if surrogate_result is not None:
+        sections.append(surrogate_result.summary())
 
-    # 8. APPENDIX C: REPRODUCIBILITY & PARAMETERS
+    # 8. APPENDIX D: REPRODUCIBILITY & PARAMETERS
     sections.append(_reproducibility_section(results, lang))
 
     final_md = "\n\n".join(sections)

@@ -3,7 +3,7 @@ Academic reporting module for Systemic Tau.
 This module is the primary entry point for generating publication-ready Markdown reports.
 """
 
-from typing import Optional, List
+from typing import Optional, List, Any
 from .results import OntologicalAscentResult
 from .report import generate_academic_report as _generate_report
 
@@ -12,7 +12,8 @@ def generate_academic_report(
     output_path: Optional[str] = None,
     location_name: Optional[str] = None,
     variables: Optional[List[str]] = None,
-    language: str = "en"
+    language: str = "en",
+    surrogate_result: Optional[Any] = None
 ) -> str:
     """
     Generate an academic Markdown report from an OntologicalAscentResult object.
@@ -23,6 +24,7 @@ def generate_academic_report(
         location_name (str, optional): Location or context name to append to the title.
         variables (list[str], optional): List of variable names used in the analysis.
         language (str, optional): Language code ('en' or 'es'). Defaults to 'en'.
+        surrogate_result (SurrogateValidationResult, optional): Optional IAAFT surrogate results.
         
     Returns:
         str: The generated Markdown report as a string.
@@ -32,7 +34,8 @@ def generate_academic_report(
         output_path=output_path,
         location_name=location_name,
         variables=variables,
-        language=language
+        language=language,
+        surrogate_result=surrogate_result
     )
 
 __all__ = ["generate_academic_report"]

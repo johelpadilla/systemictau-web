@@ -20,7 +20,7 @@ from .robustness import run_sensitivity_analysis
 from .generators import ChaosGenerator
 from .visualization import plot_tau_evolution, plot_joint_episodes, plot_ontological_layers
 from .data import preprocess, from_dataframe, from_xarray
-from .validation import evaluate_early_warning
+from .validation import evaluate_early_warning, run_surrogate_validation
 from .spatial import spatial_tau
 from .dengue import compute_dengue_outbreak_risk
 from .climate import detect_climate_tipping_points
@@ -75,5 +75,6 @@ __all__ = [
     "compute_dengue_outbreak_risk",
     "detect_climate_tipping_points",
     "compute_market_crash_risk",
+    "run_surrogate_validation",
     "studio",
 ]
