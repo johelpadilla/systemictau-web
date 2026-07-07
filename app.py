@@ -101,6 +101,24 @@ def inject_custom_css():
         box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
     }
     
+    /* Metric Cards */
+    [data-testid="stMetric"] {
+        background-color: #FFFFFF;
+        border: 1px solid #E2E8F0;
+        border-radius: 8px;
+        padding: 16px 20px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+        transition: all 0.2s ease;
+    }
+    [data-testid="stMetric"]:hover {
+        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+        border-color: #1E88E5;
+    }
+    [data-testid="stMetricValue"] {
+        color: #1E293B;
+        font-weight: 700;
+    }
+    
     /* Info/Success/Warning Cards (Glassmorphism / Shadow) */
     div[data-testid="stAlert"] {
         border-radius: 12px;
@@ -135,16 +153,15 @@ def generate_macro_clusters(df_numeric, cols, num_clusters, agg_method):
     )
 
 @st.cache_data(show_spinner=False)
-def run_core_math(X, window_size, component_names=None, adaptive_breathing=False):
+def run_core_math(X, window_size, component_names=None, adaptive_breathing=False, compute_tda=False, compute_ordinal=False, **kwargs):
     """
-    v5.0.0: Added adaptive_breathing flag (prepares regime-aware W_t).
-    When True, the engine will eventually use locally adapted windows per detected persistence regime.
-    Current implementation: passes through + logs adaptive status for UI.
+    v5.6.0: Added adaptive_breathing flag and compute_tda flag.
+    v5.1.0: Added compute_ordinal flag.
     """
     if adaptive_breathing:
         st.info("🫁 **Adaptive Breathing Window (W_t) engaged** — Dynamic regime-aware window sizing is active. The engine will automatically expand $W_t$ in hyper-persistent regimes and contract it during chaotic periods.")
     
-    res_obj = run_full_analysis(X, window_size=window_size, component_names=component_names, adaptive_breathing=adaptive_breathing)
+    res_obj = run_full_analysis(X, window_size=window_size, component_names=component_names, adaptive_breathing=adaptive_breathing, compute_tda=compute_tda, compute_ordinal=compute_ordinal, **kwargs)
     
     # Check for warnings
     if res_obj.warnings:
@@ -172,6 +189,7 @@ def run_core_math(X, window_size, component_names=None, adaptive_breathing=False
         "fractal_D": res_obj.fractal_D,
         "metadata": res_obj.metadata,
         "figures": None,
+        "tda_results": getattr(res_obj, "tda_results", None),
         "nonlinear_stats": {
             "hp_z": res_obj.hp_z,
             "laminarity": res_obj.lam,
@@ -250,36 +268,62 @@ if "ews_results" not in st.session_state:
 # Sidebar
 with st.sidebar:
     st.image("logo.jpg", width="stretch")
-    st.markdown("<h3 style='text-align: center;'>Systemic Tau 🧬 v5.0.0</h3>", unsafe_allow_html=True)
+    st.markdown("<h3 style='text-align: center;'>Systemic Tau 🧬 v5.6.0</h3>", unsafe_allow_html=True)
     st.markdown("<p style='text-align: center; color: #888;'>Adaptive • Topological • Ordinal Memory</p>", unsafe_allow_html=True)
     
-    window_size = st.slider(
-        "Window Size (n)", 
-        min_value=5, max_value=150, value=13, step=1, 
-        help="**What is the Sliding Window?**\nIt is the number of consecutive temporal observations (t) evaluated simultaneously to calculate the level of systemic entanglement.\n\n*   **Short Windows (e.g., 5-10):** Capture ultra-fast dynamics and abrupt changes, but are highly susceptible to statistical 'noise'.\n*   **Long Windows (e.g., 20+):** Smooth the signal revealing the macroscopic trend, but mathematically *delay* the detection of Early Warning Signals (EWS).\n*Recommendation*: 13 is an empirically proven Pareto optimum in biological and financial cycles."
-    )
-    
-    # v5.0.0 NEW: Adaptive Breathing Window (Urgent #1)
-    adaptive_breathing = st.checkbox(
-        "🫁 Adaptive Breathing Window (W_t) — v5.0", 
-        value=True,
-        help="""**Dynamic and Adaptive Evaluation Window**
+    with st.expander("⚙️ Core Settings", expanded=True):
+        window_size = st.slider(
+            "Window Size (n)", 
+            min_value=5, max_value=150, value=13, step=1, 
+            help="**What is the Sliding Window?**\nIt is the number of consecutive temporal observations (t) evaluated simultaneously to calculate the level of systemic entanglement.\n\n*   **Short Windows (e.g., 5-10):** Capture ultra-fast dynamics and abrupt changes, but are highly susceptible to statistical 'noise'.\n*   **Long Windows (e.g., 20+):** Smooth the signal revealing the macroscopic trend, but mathematically *delay* the detection of Early Warning Signals (EWS).\n*Recommendation*: 13 is an empirically proven Pareto optimum in biological and financial cycles."
+        )
         
-In systems with **hyper-persistence** (e.g., dengue environmental variables in San Juan, chaotic streaks of 400-800+ weeks), a fixed window generates:
-• Too much noise in long stable periods, or
-• Excessive delay near transitions.
+        # v5.6.0 NEW: Adaptive Breathing Window (Urgent #1)
+        adaptive_breathing = st.checkbox(
+            "🫁 Adaptive Breathing Window (W_t) — v5.6", 
+            value=True,
+            help="""**Dynamic and Adaptive Evaluation Window**
+            
+    In systems with **hyper-persistence** (e.g., dengue environmental variables in San Juan, chaotic streaks of 400-800+ weeks), a fixed window generates:
+    • Too much noise in long stable periods, or
+    • Excessive delay near transitions.
 
-**How it works (Breathing W_t):**
-1. First pass with base window → calculates τ_s and hyper-persistence streaks.
-2. Automatically detects the local length of regimes (using run-length of |τ_s| < 0.41 and local variance).
-3. Dynamically adjusts W_t:
-   - **Long (↑)** in prolonged hyper-persistence → more smoothing, fewer false alarms.
-   - **Short (↓)** near transitions or high local volatility → greater temporal sensitivity.
-4. Re-calculates key metrics with the adapted window per regime.
+    **How it works (Breathing W_t):**
+    1. First pass with base window → calculates τ_s and hyper-persistence streaks.
+    2. Automatically detects the local length of regimes (using run-length of |τ_s| < 0.41 and local variance).
+    3. Dynamically adjusts W_t:
+       - **Long (↑)** in prolonged hyper-persistence → more smoothing, fewer false alarms.
+       - **Short (↓)** near transitions or high local volatility → greater temporal sensitivity.
+    4. Re-calculates key metrics with the adapted window per regime.
 
-This immediately improves: Layer 1 detectors (hp_z, Joint Episodes), Layer 3 (t*), and EWS. It is the highest impact, lowest risk improvement for your daily workflow."""
-    )
-    st.session_state.adaptive_breathing = adaptive_breathing
+    This immediately improves: Layer 1 detectors (hp_z, Joint Episodes), Layer 3 (t*), and EWS. It is the highest impact, lowest risk improvement for your daily workflow."""
+        )
+        st.session_state.adaptive_breathing = adaptive_breathing
+    
+    with st.expander("🧬 Extended Features", expanded=False):
+        compute_tda = st.checkbox(
+            "🌐 Geospatial Topology (TDA)", 
+            value=True,
+            help="""**Topological Data Analysis (Persistent Homology)**
+            
+    Computes Betti Numbers ($H_0$, $H_1$) over time to detect the formation and collapse of structural 'holes' or correlation cycles in the network.
+    - Uses $D = 1 - |\tau|$ as distance metric.
+    - Includes Total Persistence, Max Persistence, and Persistence Entropy of $H_1$.
+    - Calculates in 'fast' mode (stride = 5) to save computation.
+    Requires the 'ripser' library."""
+        )
+        st.session_state.compute_tda = compute_tda
+        
+        compute_ordinal = st.checkbox(
+            "🧠 Ordinal Memory (STE)", 
+            value=True,
+            help="""**Ordinal Memory / Transfer Entropy**
+            
+    Computes Rank Mutual Information (Lite) or Symbolic Transfer Entropy (Full) to detect directionality and non-linear memory in the system.
+    - Lite Mode measures average non-linear coupling.
+    - Full Mode measures directed information flow (O(N²) complexity)."""
+        )
+        st.session_state.compute_ordinal = compute_ordinal
     
     with st.expander("⚙️ Advanced Parameters"):
         st.markdown("<small>Probabilistic Filters</small>", unsafe_allow_html=True)
@@ -293,6 +337,28 @@ This immediately improves: Layer 1 detectors (hp_z, Joint Episodes), Layer 3 (t*
             value=10, step=1, 
             help="**Minimum Duration (D_min)**\nTemporal boundary condition. A topological lock-in only acquires mathematical validation if the system remains anchored in hyper-synchronization for at least *D_min* time steps. Acts as a low-pass filter against false positives and transient micro-shocks."
         )
+        
+        st.markdown("<small>Geospatial TDA Parameters</small>", unsafe_allow_html=True)
+        tda_stride = st.number_input("TDA Stride (Windows)", value=5, step=1, help="Number of windows to skip between Persistent Homology computations. Higher is faster.")
+        tda_mode = st.selectbox("TDA Mode", ["fast", "full"], help="Fast respects stride, Full computes every window (slow).")
+        tda_persistence_threshold = st.number_input("TDA Persistence Threshold", value=0.1, step=0.01, help="Minimum lifespan to consider a topological hole significant.")
+        
+        st.session_state.tda_stride = tda_stride
+        st.session_state.tda_mode = tda_mode
+        st.session_state.tda_persistence_threshold = tda_persistence_threshold
+        
+        st.markdown("<small>Ordinal Memory Parameters</small>", unsafe_allow_html=True)
+        ordinal_mode = st.selectbox("Ordinal Mode", ["lite", "full"], help="Lite (Rank MI) is fast. Full (Symbolic Transfer Entropy) is extremely slow and captures directionality.")
+        ordinal_stride = st.number_input("Ordinal Stride (Windows)", value=5, step=1, help="Skip windows for faster computation.")
+        ordinal_m = st.slider("Embedding Dimension (m)", 2, 5, 3, help="Length of ordinal patterns. Higher m requires exponentially more computation.")
+        ordinal_delay = st.slider("Embedding Delay", 1, 5, 1, help="Time delay between points in the pattern.")
+        if ordinal_mode == "full" and ordinal_m >= 4:
+            st.warning("⚠️ Full Mode with m >= 4 is extremely slow. Ensure stride is high or dataset is small.")
+            
+        st.session_state.ordinal_mode = ordinal_mode
+        st.session_state.ordinal_stride = ordinal_stride
+        st.session_state.ordinal_m = ordinal_m
+        st.session_state.ordinal_delay = ordinal_delay
         
     with st.expander("📝 Report Branding"):
         report_title = st.text_input("Project Title", value="Systemic Tau Analysis")
@@ -320,10 +386,12 @@ This immediately improves: Layer 1 detectors (hp_z, Joint Episodes), Layer 3 (t*
     )
 
 # Main Layout
-tab1, tab2, tab3, tab4, tab7, tab5, tab6 = st.tabs([
+tab1, tab2, tab3, tab8, tab9, tab4, tab7, tab5, tab6 = st.tabs([
     "📊 Data Hub & Health", 
     "🌐 Ontological Scales", 
     "📈 Systemic Analysis", 
+    "🗺️ Geospatial Topology",
+    "🧠 Ordinal Memory",
     "🌀 EWS & Diagnostics", 
     "🛡️ Robustness & Tiers",
     "💾 Export Center",
@@ -588,7 +656,25 @@ with tab3:
             c_names = st.session_state.clustered_df.columns.tolist()
             st.write("Calculating global taus and scaling constraints...")
             adaptive_flag = st.session_state.get("adaptive_breathing", False)
-            res_dict, res_obj = run_core_math(X, window_size, component_names=c_names, adaptive_breathing=adaptive_flag)
+            tda_flag = st.session_state.get("compute_tda", False)
+            ordinal_flag = st.session_state.get("compute_ordinal", False)
+            analysis_kwargs = {
+                "tda_stride": st.session_state.get("tda_stride", 5),
+                "tda_mode": st.session_state.get("tda_mode", "fast"),
+                "tda_persistence_threshold": st.session_state.get("tda_persistence_threshold", 0.1),
+                "ordinal_stride": st.session_state.get("ordinal_stride", 5),
+                "ordinal_mode": st.session_state.get("ordinal_mode", "lite"),
+                "ordinal_m": st.session_state.get("ordinal_m", 3),
+                "ordinal_delay": st.session_state.get("ordinal_delay", 1)
+            }
+            res_dict, res_obj = run_core_math(
+                X, window_size, 
+                component_names=c_names, 
+                adaptive_breathing=adaptive_flag, 
+                compute_tda=tda_flag, 
+                compute_ordinal=ordinal_flag,
+                **analysis_kwargs
+            )
             st.session_state.analysis_results = res_dict
             st.session_state.raw_results = res_obj
             autosave_workspace()
@@ -620,6 +706,195 @@ with tab3:
         st.plotly_chart(fig5, width="stretch")
     else:
         st.warning("⚠️ **Action Required:** Please complete Step 1 (Data Hub) and Step 2 (Ontological Scales) before proceeding to Systemic Analysis.")
+
+# ----------------- TAB 8: GEOSPATIAL TOPOLOGY (TDA) -----------------
+with tab8:
+    st.header("Geospatial Topology (TDA) 🗺️")
+    if "analysis_results" not in st.session_state or st.session_state.analysis_results is None:
+        st.info("Please run the Systemic Analysis (Tab 3) first to generate topological data.")
+    else:
+        res_dict = st.session_state.analysis_results
+        tda = res_dict.get("tda_results")
+        
+        if tda is None:
+            st.warning("TDA was not computed. Please enable 'Geospatial Topology (TDA)' in the side panel and re-run the global analysis.")
+        else:
+            st.markdown("### Persistent Homology Metrics ($H_1$)")
+            st.markdown("This tracks the formation and collapse of **Topological Holes** (cycles of correlation) across the network.")
+            
+            c1, c2, c3 = st.columns(3)
+            # Find the max value of total persistence
+            valid_pers = tda['total_persistence_h1'][~np.isnan(tda['total_persistence_h1'])]
+            max_h1_total = np.max(valid_pers) if len(valid_pers) > 0 else 0
+            
+            # Find systemic t*
+            t_star = res_dict.get('t_star')
+            
+            # Find the time when H1 collapses or peaks
+            t_h1_peak = None
+            if len(valid_pers) > 0:
+                try:
+                    t_h1_peak = int(np.nanargmax(tda['total_persistence_h1']))
+                except ValueError:
+                    t_h1_peak = None
+                    
+            c1.metric("Peak H1 Total Persistence", f"{max_h1_total:.3f}")
+            c2.metric("Systemic $t^*$", f"{t_star}")
+            c3.metric("H1 Peak Time", f"{t_h1_peak}" if t_h1_peak is not None else "N/A")
+            
+            if t_star is not None and t_h1_peak is not None:
+                offset = t_star - t_h1_peak
+                if offset > 0:
+                    st.success(f"**Insight:** The topological holes reached maximum persistence **{offset} steps BEFORE** the systemic transition $t^*$. This suggests network fragmentation preceded the global lock-in.")
+                elif offset < 0:
+                    st.info(f"**Insight:** The topological holes reached maximum persistence **{abs(offset)} steps AFTER** the systemic transition $t^*$.")
+                else:
+                    st.warning(f"**Insight:** Maximum topological complexity exactly coincided with the systemic transition.")
+            
+            st.markdown("### TDA Persistence Curves")
+            import plotly.graph_objects as go
+            
+            fig = go.Figure()
+            
+            # Add Systemic Tau as a background reference
+            tau = res_dict["taus_global"]
+            fig.add_trace(go.Scatter(
+                y=tau,
+                mode='lines',
+                name='Systemic Tau',
+                line=dict(color='rgba(200, 200, 200, 0.4)', width=3, dash='dot')
+            ))
+            
+            # Add TDA curves
+            x_idx = tda['computation_windows']
+            y_total = [tda['total_persistence_h1'][i] for i in x_idx]
+            y_max = [tda['max_persistence_h1'][i] for i in x_idx]
+            y_holes = [tda['n_significant_holes'][i] for i in x_idx]
+            y_ent = [tda['persistence_entropy_h1'][i] for i in x_idx]
+            
+            fig.add_trace(go.Scatter(
+                x=x_idx,
+                y=y_total,
+                mode='lines+markers',
+                name='Total Persistence (H1)',
+                line=dict(color='#ff4b4b', width=2),
+                marker=dict(size=4)
+            ))
+            
+            fig.add_trace(go.Scatter(
+                x=x_idx,
+                y=y_max,
+                mode='lines+markers',
+                name='Max Persistence (H1)',
+                line=dict(color='#4b4bff', width=2),
+                marker=dict(size=4)
+            ))
+            
+            if t_star is not None:
+                fig.add_vline(x=t_star, line_width=2, line_dash="dash", line_color="red", annotation_text="t*")
+                
+            fig.update_layout(
+                title="Systemic Transition vs Topological Holes",
+                xaxis_title="Time Step (t)",
+                yaxis_title="Metric Value",
+                height=500,
+                template="plotly_white"
+            )
+            st.plotly_chart(fig, width="stretch")
+            
+            st.markdown("### Structural Fragmentation (H0 Components) & Entropy")
+            
+            y_h0_comp = [tda['n_connected_components_h0'][i] for i in x_idx]
+            
+            fig2 = go.Figure()
+            # H0 Components
+            fig2.add_trace(go.Scatter(
+                x=x_idx,
+                y=y_h0_comp,
+                mode='lines+markers',
+                name='Connected Components (H0)',
+                line=dict(color='#00d2d3', width=2),
+                yaxis='y1'
+            ))
+            # Persistence Entropy
+            fig2.add_trace(go.Scatter(
+                x=x_idx,
+                y=y_ent,
+                mode='lines+markers',
+                name='Persistence Entropy',
+                line=dict(color='#ff9f43', width=2),
+                yaxis='y2'
+            ))
+            
+            if t_star is not None:
+                fig2.add_vline(x=t_star, line_width=2, line_dash="dash", line_color="red", annotation_text="t*")
+                
+            fig2.update_layout(
+                title="Topological Fragmentation vs Chaos",
+                xaxis_title="Time Step (t)",
+                yaxis=dict(title="H0 Components", side="left", showgrid=False),
+                yaxis2=dict(title="Entropy", side="right", overlaying="y", showgrid=False),
+                height=400,
+                template="plotly_white",
+                legend=dict(x=0.01, y=0.99)
+            )
+            st.plotly_chart(fig2, width="stretch")
+
+# ----------------- TAB 9: ORDINAL MEMORY -----------------
+with tab9:
+    st.header("Ordinal Memory (Information Flow) 🧠")
+    
+    if "analysis_results" not in st.session_state or st.session_state.analysis_results is None:
+        st.warning("⚠️ **Action Required:** Please run Systemic Analysis first.")
+    else:
+        res = st.session_state.raw_results
+        ordinal = res.ordinal_results
+        
+        if ordinal is None:
+            st.warning("Ordinal Memory was not computed. Please enable 'Ordinal Memory (STE)' in the side panel and re-run the global analysis.")
+        else:
+            t_star = res.t_star
+            x_idx = ordinal['computation_windows']
+            y_flow = ordinal['total_flow'][x_idx]
+            y_asym = ordinal['net_asymmetry'][x_idx]
+            mode = ordinal['mode']
+            
+            st.markdown(f"**Mode:** {mode.upper()} | **m:** {ordinal['m']} | **delay:** {ordinal['delay']}")
+            st.markdown("Higher **Total Flow** indicates strong non-linear coupling. Higher **Net Asymmetry** indicates that specific components are leading the systemic behavior.")
+            
+            fig = go.Figure()
+            
+            fig.add_trace(go.Scatter(
+                x=x_idx,
+                y=y_flow,
+                mode='lines+markers',
+                name='Total Information Flow',
+                line=dict(color='#00d2d3', width=2),
+                marker=dict(size=4)
+            ))
+            
+            if mode == 'full':
+                fig.add_trace(go.Scatter(
+                    x=x_idx,
+                    y=y_asym,
+                    mode='lines+markers',
+                    name='Net Flow Asymmetry',
+                    line=dict(color='#ff9f43', width=2),
+                    marker=dict(size=4)
+                ))
+                
+            if t_star is not None:
+                fig.add_vline(x=t_star, line_width=2, line_dash="dash", line_color="red", annotation_text="t*")
+                
+            fig.update_layout(
+                title=f"Ordinal Memory Dynamics ({mode.upper()})",
+                xaxis_title="Time Step (t)",
+                yaxis_title="Metric Value",
+                height=500,
+                template="plotly_white",
+                legend=dict(x=0.01, y=0.99)
+            )
+            st.plotly_chart(fig, width="stretch")
 
 # ----------------- TAB 4: DIAGNOSTICS & EWS -----------------
 with tab4:
@@ -778,22 +1053,22 @@ with tab5:
                     col1, col2, col3 = st.columns(3)
                     
                 with col1:
-                    st.metric("Linear Baseline Contribution", f"{linear_contribution:.1f}%")
+                    st.metric("Linear Baseline Contribution", f"{linear_contribution:.1f}%", help="Percentage of the observed systemic correlation that can be explained purely by the linear autocorrelation of the variables.")
                 with col2:
-                    st.metric("Real Max Tau", f"{real_max_tau:.3f}")
+                    st.metric("Real Max Tau", f"{real_max_tau:.3f}", help="The maximum Systemic Tau observed in the real (non-surrogate) dataset.")
                 
                 if has_surr_stats:
                     with col3:
-                        st.metric("Surrogate Mean (Linear)", f"{surr_mean:.3f}")
+                        st.metric("Surrogate Mean (Linear)", f"{surr_mean:.3f}", help="The average maximum Systemic Tau produced by phase-randomized linear surrogates.")
                     with col4:
                         if not np.isnan(surr_std) and surr_std > 0:
                             excess = (real_max_tau - surr_mean) / surr_std
-                            st.metric("Excess over Linear (Z)", f"{excess:.2f}")
+                            st.metric("Excess over Linear (Z)", f"{excess:.2f}", help="Z-score representing how much the real correlation exceeds the linear expectation. Z > 2 indicates significant non-linear/topological coupling.")
                         else:
                             st.metric("Excess over Linear (Z)", "N/A", help="Standard deviation is 0 or missing.")
                 else:
                     with col3:
-                        st.metric("Percentile", f"{surr.percentile_rank:.2f}%")
+                        st.metric("Percentile", f"{surr.percentile_rank:.2f}%", help="The rank of the real observation among the surrogates. Lower is more significant (e.g., < 5%).")
                 
                 # Interpretación por casos
                 if surr.percentile_rank < 5.0:
@@ -863,11 +1138,12 @@ with tab5:
                     mime="application/pdf",
                     type="secondary"
                 )
+                
+                with st.expander("Preview Academic Report", expanded=False):
+                    st.markdown(report_md)
+                    
             except Exception as e:
                 st.warning(f"Could not generate Report/PDF: {e}")
-            
-            with st.expander("Preview Academic Report", expanded=False):
-                st.markdown(report_md)
         else:
             st.warning(f"The systemictau[reports] module is not installed or available. Error: {REPORT_ERROR}")
             
@@ -919,7 +1195,7 @@ with tab6:
                         title=f"Comparative RECD Manifold ({valid_files} Sessions)",
                         xaxis_title="Time Step (k)",
                         yaxis_title="Accumulated RECD ($T_k$)",
-                        template="plotly_dark",
+                        template="plotly_white",
                         hovermode="x unified"
                     )
                     st.plotly_chart(fig, width="stretch")

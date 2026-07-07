@@ -1,6 +1,20 @@
 [theme]
+# Primary color for buttons, interactive elements (Electric Blue/Purple)
 primaryColor = "#1E88E5"
-backgroundColor = "#F8FAFC"
-secondaryBackgroundColor = "#FFFFFF"
+
+# Background color for the main app area
+backgroundColor = "#FFFFFF"
+
+# Background color used for the sidebar and most interactive widgets
+secondaryBackgroundColor = "#F8FAFC"
+
+# Text color
 textColor = "#1E293B"
+
+# Font family (Inter, sans-serif)
 font = "sans serif"
+
+[server]
+# Run in light mode by default
+# If the user toggles it from the app settings, it overrides this.
+runOnSave = true

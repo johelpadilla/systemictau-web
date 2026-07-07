@@ -48,6 +48,35 @@ def _kendall_tau_numba(x, y):
     return (concordant - discordant) / total
 
 @njit
+def _kendall_tau_matrix_numba(window):
+    """
+    Computes the full pairwise Kendall Tau correlation matrix for a window of shape (T, N).
+    """
+    T, N = window.shape
+    tau_matrix = np.zeros((N, N))
+    for i in range(N):
+        tau_matrix[i, i] = 1.0
+        for j in range(i + 1, N):
+            concordant = 0
+            discordant = 0
+            for t1 in range(T):
+                for t2 in range(t1 + 1, T):
+                    sign_x = 1 if window[t1, i] < window[t2, i] else (-1 if window[t1, i] > window[t2, i] else 0)
+                    sign_y = 1 if window[t1, j] < window[t2, j] else (-1 if window[t1, j] > window[t2, j] else 0)
+                    if sign_x * sign_y > 0:
+                        concordant += 1
+                    elif sign_x * sign_y < 0:
+                        discordant += 1
+            total = T * (T - 1) / 2
+            if total == 0:
+                tau = 0.0
+            else:
+                tau = (concordant - discordant) / total
+            tau_matrix[i, j] = tau
+            tau_matrix[j, i] = tau
+    return tau_matrix
+
+@njit
 def _compute_taus_numba(X, window_size, stride):
     T, N = X.shape
     taus_global = np.full(T, np.nan)

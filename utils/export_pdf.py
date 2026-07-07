@@ -31,6 +31,42 @@ def convert_markdown_to_pdf(md_text: str) -> bytes:
     
     lines = md_text.split('\n')
     
+    in_frontmatter = False
+    frontmatter_content = {}
+    
+    # Pre-parse frontmatter
+    if lines and lines[0].strip() == '---':
+        in_frontmatter = True
+        for i in range(1, len(lines)):
+            if lines[i].strip() == '---':
+                in_frontmatter = False
+                lines = lines[i+1:]
+                break
+            if ':' in lines[i]:
+                key, val = lines[i].split(':', 1)
+                frontmatter_content[key.strip()] = val.strip().strip('"')
+                
+    if frontmatter_content:
+        pdf.set_y(60)
+        pdf.set_font("Arial", 'B', 24)
+        pdf.set_text_color(0, 51, 102)
+        title = frontmatter_content.get('title', 'Systemic Tau Analysis')
+        pdf.multi_cell(0, 10, title.encode('latin-1', 'replace').decode('latin-1'), align='C')
+        pdf.ln(20)
+        
+        pdf.set_font("Arial", 'I', 14)
+        pdf.set_text_color(100, 100, 100)
+        author = frontmatter_content.get('author', '')
+        if author:
+            pdf.cell(0, 10, f"Author: {author}".encode('latin-1', 'replace').decode('latin-1'), ln=True, align='C')
+            
+        dataset = frontmatter_content.get('dataset', '')
+        if dataset:
+            pdf.set_font("Arial", '', 12)
+            pdf.cell(0, 10, f"Dataset: {dataset}".encode('latin-1', 'replace').decode('latin-1'), ln=True, align='C')
+            
+        pdf.add_page()
+    
     for line in lines:
         line_clean = line.strip()
         if not line_clean:
@@ -63,36 +99,36 @@ def convert_markdown_to_pdf(md_text: str) -> bytes:
         text = line_clean.replace('**', '').replace('__', '')
         # Handle headers
         if text.startswith('# '):
-            pdf.set_font("Arial", 'B', 16)
+            pdf.set_font("Arial", 'B', 18)
             pdf.set_text_color(0, 51, 102)
-            pdf.ln(6)
+            pdf.ln(8)
             pdf.multi_cell(0, 8, text[2:].strip().encode('latin-1', 'replace').decode('latin-1'))
             pdf.ln(2)
         elif text.startswith('## '):
             pdf.set_font("Arial", 'B', 14)
             pdf.set_text_color(0, 0, 0)
-            pdf.ln(4)
+            pdf.ln(6)
             pdf.multi_cell(0, 7, text[3:].strip().encode('latin-1', 'replace').decode('latin-1'))
             pdf.ln(1)
         elif text.startswith('### '):
             pdf.set_font("Arial", 'B', 12)
             pdf.set_text_color(50, 50, 50)
-            pdf.ln(2)
+            pdf.ln(4)
             pdf.multi_cell(0, 6, text[4:].strip().encode('latin-1', 'replace').decode('latin-1'))
         elif text.startswith('- ') or text.startswith('* '):
-            pdf.set_font("Arial", '', 10)
-            pdf.set_text_color(0, 0, 0)
+            pdf.set_font("Arial", '', 11)
+            pdf.set_text_color(30, 30, 30)
             pdf.set_x(20)
-            pdf.multi_cell(0, 5, "- " + text[2:].strip().encode('latin-1', 'replace').decode('latin-1'))
+            pdf.multi_cell(0, 6, "- " + text[2:].strip().encode('latin-1', 'replace').decode('latin-1'))
         elif text.startswith('> '):
-            pdf.set_font("Arial", 'I', 10)
+            pdf.set_font("Arial", 'I', 11)
             pdf.set_text_color(100, 100, 100)
             pdf.set_x(20)
-            pdf.multi_cell(0, 5, text[2:].strip().encode('latin-1', 'replace').decode('latin-1'))
+            pdf.multi_cell(0, 6, text[2:].strip().encode('latin-1', 'replace').decode('latin-1'))
         else:
-            pdf.set_font("Arial", '', 10)
-            pdf.set_text_color(0, 0, 0)
-            pdf.multi_cell(0, 5, text.encode('latin-1', 'replace').decode('latin-1'))
+            pdf.set_font("Arial", '', 11)
+            pdf.set_text_color(30, 30, 30)
+            pdf.multi_cell(0, 6, text.encode('latin-1', 'replace').decode('latin-1'))
 
     pdf_bytes = pdf.output(dest='S').encode('latin-1')
     return pdf_bytes

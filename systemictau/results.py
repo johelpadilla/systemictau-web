@@ -58,6 +58,13 @@ class OntologicalAscentResult:
     # === Additions for report compatibility ===
     dtk_series: np.ndarray = field(default_factory=lambda: np.array([]))
     taus_per_module: np.ndarray = field(default_factory=lambda: np.array([]))
+    
+    # === Topological Data Analysis (TDA) ===
+    tda_results: Optional[Dict[str, Any]] = None
+    
+    # === Ordinal Memory (Symbolic Transfer Entropy) ===
+    ordinal_results: Optional[Dict[str, Any]] = None
+    
     component_names: List[str] = field(default_factory=list)
     
     # === Teorema 24v ===

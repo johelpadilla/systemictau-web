@@ -23,6 +23,7 @@ from .layers import (
 )
 from .fractal import estimate_higuchi_dimension
 from .results import OntologicalAscentResult
+from .topology import compute_tda_features, HAS_RIPSER
 
 
 def run_full_analysis(
@@ -34,6 +35,8 @@ def run_full_analysis(
     expected_fractal_range: tuple[float, float] = (1.85, 2.15),
     component_names: Optional[List[str]] = None,
     adaptive_breathing: bool = False,
+    compute_tda: bool = False,
+    compute_ordinal: bool = False,
     **kwargs,
 ) -> OntologicalAscentResult:
     """
@@ -179,6 +182,47 @@ def run_full_analysis(
     except Exception as e:
         warnings.append(f"Error calculando dimensión fractal: {str(e)}")
 
+    # === 7. Geospatial Topology (TDA) ===
+    tda_results = None
+    if compute_tda:
+        if HAS_RIPSER:
+            try:
+                stride = kwargs.get("tda_stride", 5)
+                mode = kwargs.get("tda_mode", "fast")
+                thresh = kwargs.get("tda_persistence_threshold", 0.1)
+                tda_results = compute_tda_features(
+                    X, 
+                    window_size=window_size,
+                    stride=stride,
+                    mode=mode,
+                    persistence_threshold=thresh
+                )
+            except Exception as e:
+                warnings.append(f"Error computing TDA features: {str(e)}")
+        else:
+            warnings.append("TDA requested but 'ripser' library is not installed.")
+
+    # === 8. Ordinal Memory (Feature #3) ===
+    ordinal_results = None
+    if compute_ordinal:
+        try:
+            from systemictau.ordinal_memory import compute_ordinal_features
+            ordinal_stride = kwargs.get("ordinal_stride", 5)
+            ordinal_mode = kwargs.get("ordinal_mode", "lite")
+            ordinal_m = kwargs.get("ordinal_m", 3)
+            ordinal_delay = kwargs.get("ordinal_delay", 1)
+            
+            ordinal_results = compute_ordinal_features(
+                X,
+                window_size=window_size,
+                stride=ordinal_stride,
+                mode=ordinal_mode,
+                m=ordinal_m,
+                delay=ordinal_delay
+            )
+        except Exception as e:
+            warnings.append(f"Error computing Ordinal Memory: {str(e)}")
+
     return OntologicalAscentResult(
         X=X,
         window_size=window_size,
@@ -203,5 +247,7 @@ def run_full_analysis(
         component_names=component_names,
         dyadic_k_series=k_series,
         estimated_period_series=estimated_period_series,
+        tda_results=tda_results,
+        ordinal_results=ordinal_results,
         figures=None
     )

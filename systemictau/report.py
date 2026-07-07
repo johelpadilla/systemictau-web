@@ -1,5 +1,5 @@
 """
-Generador de Reportes Académicos - Systemic Tau Paradigm v4.6.1
+Generador de Reportes Académicos - Systemic Tau Paradigm v5.6.0
 """
 
 from __future__ import annotations
@@ -70,6 +70,14 @@ def generate_academic_report(
         
         if figures and "Tier 1: Ontological Overview" in figures:
             sections.append(_tier_1_section(results, lang, figures, include_theoretical_captions))
+
+    # 4.5. TDA GEOSPATIAL TOPOLOGY
+    if include_figures and figures and "TDA: Systemic Transition vs Topological Holes" in figures:
+        sections.append(_tda_section(results, lang, figures, include_theoretical_captions))
+        
+    # 4.6. ORDINAL MEMORY
+    if include_figures and figures and "Ordinal Memory Dynamics" in figures:
+        sections.append(_ordinal_section(results, lang, figures, include_theoretical_captions))
 
     # 5. WARNINGS
     if results.warnings:
@@ -202,7 +210,7 @@ dataset: {dataset_str}
 
 {author_block}{org_str}---
 
-**Generado automáticamente vía `systemictau v4.6.x`**
+**Generado automáticamente vía `systemictau v5.6.0`**
 *Marco Teórico basado en la Síntesis Magna v6 y The Principle of Ontological Ascent (Padilla, 2026).*"""
     else:
         return f"""---
@@ -216,7 +224,7 @@ dataset: {dataset_str}
 
 {author_block}{org_str}---
 
-**Automatically generated via `systemictau v4.6.x`**
+**Automatically generated via `systemictau v5.6.0`**
 *Theoretical Framework based on the Magna Synthesis v6 and The Principle of Ontological Ascent (Padilla, 2026).*"""
 
 def _executive_summary(results: OntologicalAscentResult, lang: str) -> str:
@@ -365,6 +373,123 @@ def _statistical_significance_appendix_section(results: OntologicalAscentResult,
         
     return f"{header}\n\n{text}"
 
+def _tda_section(results: OntologicalAscentResult, lang: str, figures: Dict[str, str], include_theoretical_captions: bool) -> str:
+    header = "## Tier 4: Geospatial Topology (TDA)" if lang == "en" else "## Nivel 4: Topología Geoespacial (TDA)"
+    
+    # 4.1 Persistence Curves
+    section1 = ""
+    fig1 = figures.get("TDA: Systemic Transition vs Topological Holes")
+    if fig1:
+        img_md = f"![TDA Persistence Curves](data:image/png;base64,{fig1})"
+        desc_en = (
+            "**Figure: Topological Homology (H1).**\n"
+            "This figure tracks the Betti number $H_1$ representing 1-dimensional 'holes' or uncoupled cycles "
+            "within the correlation network. A sudden drop in Total Persistence before or during $t^*$ "
+            "indicates the collapse of structural diversity as the system is absorbed into the systemic manifold."
+        )
+        desc_es = (
+            "**Figura: Homología Topológica (H1).**\n"
+            "Esta figura rastrea el número de Betti $H_1$ representando 'agujeros' unidimensionales o ciclos "
+            "desacoplados en la red de correlación. Una caída repentina en la Persistencia Total antes o durante $t^*$ "
+            "indica el colapso de la diversidad estructural a medida que el sistema es absorbido por la variedad sistémica."
+        )
+        desc = desc_en if lang == "en" else desc_es
+        
+        caption = ""
+        if include_theoretical_captions:
+            cap_en = (
+                "> **Theoretical Note:** In Topological Data Analysis, a high $H_1$ persistence implies a structurally "
+                "heterogeneous system with independent sub-cycles. When the Systemic Tau transitions the system into a "
+                "hyper-synchronized state, these holes topologically collapse into a single connected component, signaling "
+                "the loss of degrees of freedom."
+            )
+            cap_es = (
+                "> **Nota Teórica:** En Análisis Topológico de Datos, una alta persistencia de $H_1$ implica un sistema "
+                "estructuralmente heterogéneo con sub-ciclos independientes. Cuando la Tau Sistémica transiciona el sistema "
+                "a un estado hiper-sincronizado, estos agujeros colapsan topológicamente en un solo componente conectado, "
+                "señalando la pérdida de grados de libertad."
+            )
+            caption = "\n\n" + (cap_en if lang == "en" else cap_es)
+            
+        section1 = f"{img_md}\n\n{desc}{caption}"
+        
+    # 4.2 Topological Chaos
+    section2 = ""
+    fig2 = figures.get("TDA: Topological Chaos")
+    if fig2:
+        img_md = f"![Topological Chaos](data:image/png;base64,{fig2})"
+        desc_en = (
+            "**Figure: Structural Fragmentation (H0) & Persistence Entropy.**\n"
+            "This figure tracks the Betti number $H_0$ (Connected Components) and the Shannon entropy of structural holes ($H_1$). "
+            "A drop in components indicates that isolated clusters are merging, while a drop in entropy signifies that the network has lost its topological complexity, becoming uniformly synchronized."
+        )
+        desc_es = (
+            "**Figura: Fragmentación Estructural (H0) y Entropía de Persistencia.**\n"
+            "Esta figura rastrea el número de Betti $H_0$ (Componentes Conectados) y la entropía de Shannon de los agujeros estructurales ($H_1$). "
+            "Una caída en los componentes indica que los clústeres aislados se están fusionando, mientras que una caída en la entropía significa que la red ha perdido su complejidad topológica, volviéndose uniformemente sincronizada."
+        )
+        desc = desc_en if lang == "en" else desc_es
+        
+        caption = ""
+        if include_theoretical_captions:
+            cap_en = (
+                "> **Theoretical Note:** $H_0$ components measure the number of disconnected clusters in the state space. "
+                "A high $H_0$ implies spatial fragmentation, while a drop to 1 indicates total systemic synchronization. "
+                "Concurrently, Persistence Entropy quantifies the structural chaos of these connections. "
+                "Systems approaching criticality often experience a topological simplification, mathematically observable as "
+                "a steep decline in both $H_0$ and Persistence Entropy."
+            )
+            cap_es = (
+                "> **Nota Teórica:** Los componentes $H_0$ miden el número de clústeres desconectados en el espacio de estados. "
+                "Un $H_0$ alto implica fragmentación espacial, mientras que una caída a 1 indica sincronización sistémica total. "
+                "Simultáneamente, la Entropía de Persistencia cuantifica el caos estructural de estas conexiones. "
+                "Los sistemas que se acercan a la criticidad a menudo experimentan una simplificación topológica, observable "
+                "matemáticamente como un declive abrupto tanto en $H_0$ como en la Entropía de Persistencia."
+            )
+            caption = "\n\n" + (cap_en if lang == "en" else cap_es)
+            
+        section2 = f"{img_md}\n\n{desc}{caption}"
+        
+    return f"{header}\n\n{section1}\n\n{section2}"
+
+def _ordinal_section(results, lang: str, figures: dict, include_theoretical_captions: bool) -> str:
+    header = "## Tier 5: Ordinal Memory (Information Flow)" if lang == "en" else "## Nivel 5: Memoria Ordinal (Flujo de Información)"
+    
+    fig = figures.get("Ordinal Memory Dynamics")
+    if not fig:
+        return ""
+        
+    mode = results.ordinal_results['mode'].upper()
+    img_md = f"![Ordinal Memory Dynamics](data:image/png;base64,{fig})"
+    
+    desc_en = (
+        f"**Figure: Ordinal Memory Dynamics ({mode}).**\n"
+        "Tracks the Total Information Flow (average non-linear coupling) and, if in Full Mode, the Net Flow Asymmetry. "
+        "A high Total Flow indicates strong non-linear memory within the system. A rising Net Asymmetry suggests that a subset of variables is 'leading' the systemic collapse, exerting a directed influence over the rest of the network."
+    )
+    desc_es = (
+        f"**Figura: Dinámica de Memoria Ordinal ({mode}).**\n"
+        "Rastrea el Flujo Total de Información (acoplamiento no lineal promedio) y, si está en Modo Full, la Asimetría Neta de Flujo. "
+        "Un Flujo Total alto indica una fuerte memoria no lineal dentro del sistema. Una Asimetría Neta creciente sugiere que un subconjunto de variables está 'liderando' el colapso sistémico, ejerciendo una influencia dirigida sobre el resto de la red."
+    )
+    desc = desc_en if lang == "en" else desc_es
+    
+    caption = ""
+    if include_theoretical_captions:
+        cap_en = (
+            "> **Theoretical Note:** Systemic Tau measures macroscopic structural coupling. "
+            "Ordinal Memory (via Symbolic Transfer Entropy or Rank Mutual Information) adds directionality and non-linear memory to this framework. "
+            "While Tau describes *that* the system is collapsing, Ordinal Asymmetry helps identify *who* is driving the transition."
+        )
+        cap_es = (
+            "> **Nota Teórica:** La Tau Sistémica mide el acoplamiento estructural macroscópico. "
+            "La Memoria Ordinal (vía Transfer Entropy Simbólica o Rank Mutual Information) añade direccionalidad y memoria no lineal a este marco. "
+            "Mientras que Tau describe *que* el sistema está colapsando, la Asimetría Ordinal ayuda a identificar *quién* está impulsando la transición."
+        )
+        caption = "\n\n" + (cap_en if lang == "en" else cap_es)
+        
+    return f"{header}\n\n{img_md}\n\n{desc}{caption}"
+
 def _reproducibility_section(results: OntologicalAscentResult, lang: str) -> str:
     header = "## Reproducibility" if lang == "en" else "## Reproducibilidad"
     
@@ -375,7 +500,7 @@ def _reproducibility_section(results: OntologicalAscentResult, lang: str) -> str
     res_hash = hashlib.sha256(core_str.encode()).hexdigest()[:8]
     
     if lang == "en":
-        text = f"This analysis was generated using **`systemictau v4.6.1`**.\n\n"
+        text = f"This analysis was generated using **`systemictau v5.6.0`**.\n\n"
         text += f"**Core Parameters:**\n"
         text += f"- `window_size`: {results.window_size}\n"
         text += f"- `theta_A`: {theta_a}\n\n"
@@ -383,7 +508,7 @@ def _reproducibility_section(results: OntologicalAscentResult, lang: str) -> str
         text += "The full `OntologicalAscentResult` object associated with this identifier was serialized to `analysis_result.json` (available as supplementary material or within the app's analytical export hub). "
         text += "Cite as: Padilla (2026). *Magna Synthesis v6* and associated Python package."
     else:
-        text = f"Este análisis fue generado utilizando **`systemictau v4.6.1`**.\n\n"
+        text = f"Este análisis fue generado utilizando **`systemictau v5.6.0`**.\n\n"
         text += f"**Parámetros Principales:**\n"
         text += f"- `window_size`: {results.window_size}\n"
         text += f"- `theta_A`: {theta_a}\n\n"
