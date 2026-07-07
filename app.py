@@ -26,7 +26,29 @@ from systemictau.visualization.viz import plot_scale_detail
 from systemictau.visualization.monumental_viz import plot_3d_strange_attractor, plot_discretization_manifold, plot_topological_heatmap, plot_ews_dashboard, plot_dyadic_cascade, plot_unimodal_return_map
 from utils.export_pdf import convert_markdown_to_pdf
 
-st.set_page_config(page_title="Systemic Tau Studio", page_icon="🧬", layout="wide")
+st.set_page_config(
+    page_title="Systemic Tau Paradigm", 
+    page_icon="🧬", 
+    layout="wide",
+    initial_sidebar_state="expanded",
+    menu_items={
+        'Get Help': 'https://github.com/johelpadilla/systemictau-web',
+        'Report a bug': "https://github.com/johelpadilla/systemictau-web/issues",
+        'About': """
+# Systemic Tau Paradigm 🧬
+**Version 5.6.0 (The Synthesis Release)**
+
+An advanced topological time-series engine designed to detect **Early Warning Signals (EWS)** of systemic collapse in complex non-linear environments. 
+
+**Core Technologies:**
+- Persistent Homology (Algebraic Topology)
+- Symbolic Transfer Entropy (Ordinal Memory)
+- Adaptive Temporal Breathing Windows
+
+*Theoretical Framework based on the Magna Synthesis v6 (Padilla, 2026).*
+        """
+    }
+)
 
 def inject_custom_css():
     st.markdown("""
