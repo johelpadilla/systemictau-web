@@ -1,8 +1,8 @@
-# Systemic Tau v4.1.5-Pro (Commercial Release) 🧬
+# Systemic Tau v5.6.0 (The Synthesis Release) 🧬
 
-Welcome to the **Systemic Tau Paradigm** analytical engine. This v4.1.5-Pro release is the definitive, stable commercial version of the software, designed for multivariate topological time-series analysis and Early Warning Signals (EWS) detection.
+Welcome to the **Systemic Tau Paradigm** analytical engine. Version 5.6.0 represents a monumental leap in time-series topology, transitioning from static correlations to dynamic, hyper-dimensional causal mapping. This engine is specifically designed to detect early warning signals (EWS) of systemic collapse in complex non-linear environments.
 
-## Quick Start (Mac / Linux)
+## 🚀 Quick Start (Mac / Linux)
 
 1. **Install Dependencies:**
    Ensure you have Python installed, then run:
@@ -15,21 +15,22 @@ Welcome to the **Systemic Tau Paradigm** analytical engine. This v4.1.5-Pro rele
    streamlit run app.py
    ```
 
-## What's New in v4.1.5-Pro?
+## 🌟 What's New in v5.6.0?
 
-This release transforms the engine into a market-ready SaaS application:
+This milestone release establishes the definitive mathematical foundation for the engine:
 
-- **1. Branded Academic Reports:** Generate high-resolution PDF/Markdown reports featuring your Project Title, Author Name, and Organization on a formal cover page (Tab 5).
-- **2. Browser Autosave (Shadow Cache):** The engine seamlessly saves your mathematical state in the background. If you close your browser accidentally, you can restore your massive session instantly from Tab 1 without recalculating.
-- **3. Comparative Meta-Analysis (Tab 6):** Upload multiple `.tau` workspaces simultaneously to graph multiple system collapse curves (RECD) on a single interactive Plotly dashboard.
-- **4. Data Templates:** Download a perfectly formatted CSV template directly from Tab 1 to ensure zero ingestion errors.
-- **5. Deep-Tech UI/UX:** A streamlined, commercial-grade interface featuring a bespoke aesthetic and foolproof navigation guardrails.
+- **1. Topological Data Analysis (TDA):** Complete integration of Algebraic Topology. Compute Betti Numbers ($H_0$, $H_1$) and topological invariants (Total/Max Persistence, Persistence Entropy) to mathematically map the creation and collapse of "holes" in the system's structural manifold.
+- **2. Ordinal Memory & Symbolic Transfer Entropy:** Measure directional information flow and true non-linear coupling without distributional assumptions. Powered by a high-speed Numba core, it offers both Rank Mutual Information (Lite) and strict Symbolic TE (Full) modes.
+- **3. Adaptive Breathing Window ($W_t$):** The temporal sliding window now auto-scales in real-time. It "inhales" (expands) during stable regimes to suppress noise, and "exhales" (contracts) during volatile transitions to pinpoint exact rupture moments.
+- **4. Linear Baseline Testing:** The IAAFT surrogate test has been redesigned to quantify the exact percentage of a critical transition ($t^*$) driven by linear vs non-linear topological factors.
+- **5. Enterprise Aesthetic & PDF Engine:** Features a cohesive Light Mode standard (`config.toml`), responsive Glassmorphic KPI cards, a streamlined control sidebar, and a vastly improved PDF generation engine that auto-formats professional academic cover pages.
 
-## Architecture
+## 🏗 Architecture
 
 - **`app.py`**: The main Streamlit GUI frontend.
-- **`systemictau/`**: The core mathematical backend (Numba-optimized).
+- **`systemictau/`**: The core mathematical backend (Numba-optimized). Includes `topology.py`, `ordinal_memory.py`, and `analysis.py`.
 - **`data/`**: Directory for sample datasets (e.g., DengAI).
+- **`utils/`**: Helper utilities, including `export_pdf.py`.
 
 ---
 *Powered by the Magna Synthesis v6 and the Principle of Ontological Ascent.*
