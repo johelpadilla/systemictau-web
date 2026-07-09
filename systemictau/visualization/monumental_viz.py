@@ -426,7 +426,11 @@ def plot_nested_recd_dashboard(results: Dict[str, Any]) -> go.Figure:
     contrib1 = np.asarray(recd.get("contrib1", phi1))
     contrib2 = np.asarray(recd.get("contrib2", phi2))
     contrib3 = np.asarray(recd.get("contrib3", phi3))
-    frac3 = np.asarray(recd.get("frac_contrib3", np.zeros_like(phi1)))
+    
+    total_contrib = contrib1 + contrib2 + contrib3
+    frac3 = np.zeros_like(contrib3)
+    valid = total_contrib > 0
+    frac3[valid] = contrib3[valid] / total_contrib[valid]
     
     tstar = results.get("t_star", None)
     

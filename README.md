@@ -1,6 +1,6 @@
-# Systemic Tau v5.6.0 (The Synthesis Release) 🧬
+# Systemic Tau v5.6.1 (The Synthesis Release) 🧬
 
-Welcome to the **Systemic Tau Paradigm** analytical engine. Version 5.6.0 represents a monumental leap in time-series topology, transitioning from static correlations to dynamic, hyper-dimensional causal mapping. This engine is specifically designed to detect early warning signals (EWS) of systemic collapse in complex non-linear environments.
+Welcome to the **Systemic Tau Paradigm** analytical engine. Version 5.6.1 represents a monumental leap in time-series topology, transitioning from static correlations to dynamic, hyper-dimensional causal mapping. This engine is specifically designed to detect early warning signals (EWS) of systemic collapse in complex non-linear environments.
 
 ## 🚀 Quick Start (Mac / Linux)
 
@@ -15,7 +15,7 @@ Welcome to the **Systemic Tau Paradigm** analytical engine. Version 5.6.0 repres
    streamlit run app.py
    ```
 
-## 🌟 What's New in v5.6.0?
+## 🌟 What's New in v5.6.1?
 
 This milestone release establishes the definitive mathematical foundation for the engine:
 

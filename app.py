@@ -292,7 +292,7 @@ if "ews_results" not in st.session_state:
 # Sidebar
 with st.sidebar:
     st.image("logo.jpg", width="stretch")
-    st.markdown("<h3 style='text-align: center;'>Systemic Tau 🧬 v5.6.0</h3>", unsafe_allow_html=True)
+    st.markdown("<h3 style='text-align: center;'>Systemic Tau 🧬 v5.6.1</h3>", unsafe_allow_html=True)
     st.markdown("<p style='text-align: center; color: #888;'>Adaptive • Topological • Ordinal Memory</p>", unsafe_allow_html=True)
     
     with st.expander("⚙️ Core Settings", expanded=True):
@@ -352,7 +352,7 @@ with st.sidebar:
         compute_nested_recd = st.checkbox(
             "🕰️ Nested RECD (Extramental Clock)", 
             value=True,
-            help="""**Nested Ordinal RECD**
+            help=r"""**Nested Ordinal RECD**
             
     Computes nested ordinal conjunction levels ($\Phi_1$, $\Phi_2$, $\Phi_3$) and the $\lambda$-weighted Discrete Extramental Clock.
     - Extracts deep structural memory and synergistic patterns before critical transitions.
@@ -965,7 +965,7 @@ with tab10:
             from systemictau.visualization.monumental_viz import plot_nested_recd_dashboard
             fig = plot_nested_recd_dashboard(st.session_state.analysis_results)
             if fig is not None:
-                st.plotly_chart(fig, use_container_width=True)
+                st.plotly_chart(fig, width="stretch")
 
 # ----------------- TAB 4: DIAGNOSTICS & EWS -----------------
 with tab4:

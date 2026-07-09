@@ -145,6 +145,14 @@ def generate_report_figures(results: OntologicalAscentResult, ews_results: Optio
                 figures_dict["Ordinal Memory Dynamics"] = b64_ordinal
         except Exception as e:
             print(f"Failed to generate Ordinal Memory chart: {e}")
+            
+    if hasattr(results, 'nested_recd_results') and results.nested_recd_results is not None:
+        try:
+            b64_recd = generate_nested_recd_chart_base64(results)
+            if b64_recd:
+                figures_dict["Nested RECD Extramental Clock"] = b64_recd
+        except Exception as e:
+            print(f"Failed to generate Nested RECD chart: {e}")
         
     return figures_dict
 def generate_ordinal_chart_base64(res) -> str:
@@ -197,4 +205,95 @@ def generate_ordinal_chart_base64(res) -> str:
     )
     
     img_bytes = fig.to_image(format="png", engine="kaleido")
+    return base64.b64encode(img_bytes).decode("utf-8")
+
+def generate_nested_recd_chart_base64(res) -> str:
+    """
+    Generates a base64 encoded PNG of the Nested RECD Extramental Clock dashboard.
+    """
+    import plotly.graph_objects as go
+    from plotly.subplots import make_subplots
+    import numpy as np
+    
+    if not hasattr(res, "nested_recd_results") or not res.nested_recd_results:
+        return ""
+        
+    recd = res.nested_recd_results
+    t_recd = np.arange(len(recd["phi1"]))
+    
+    phi1 = np.asarray(recd["phi1"])
+    phi2 = np.asarray(recd["phi2"])
+    phi3 = np.asarray(recd["phi3"])
+    excess3 = np.asarray(recd["excess3"])
+    T_series = np.asarray(recd["T_recd"])
+    
+    contrib1 = np.asarray(recd.get("contrib1", phi1))
+    contrib2 = np.asarray(recd.get("contrib2", phi2))
+    contrib3 = np.asarray(recd.get("contrib3", phi3))
+    
+    total_contrib = contrib1 + contrib2 + contrib3
+    frac3 = np.zeros_like(contrib3)
+    valid = total_contrib > 0
+    frac3[valid] = contrib3[valid] / total_contrib[valid]
+    
+    tstar = getattr(res, "t_star", None)
+    
+    fig = make_subplots(
+        rows=3, cols=1,
+        shared_xaxes=True,
+        vertical_spacing=0.08,
+        subplot_titles=(
+            "Extramental Clock Accumulation (T_recd) & Excess3",
+            "Nested Ordinal Contributions (αk * Φk)",
+            "Fractional Contribution of Level 3 (Emergence)"
+        )
+    )
+    
+    # 1. T_recd and Excess3
+    fig.add_trace(go.Scatter(
+        x=t_recd, y=T_series, mode='lines', name='T_recd Clock',
+        line=dict(color='#8e44ad', width=2)
+    ), row=1, col=1)
+    
+    fig.add_trace(go.Scatter(
+        x=t_recd, y=excess3, mode='lines', name='Excess3 (Level 3 proxy)',
+        line=dict(color='#f43f5e', width=1, dash='dot')
+    ), row=1, col=1)
+    
+    # 2. Contributions
+    fig.add_trace(go.Scatter(
+        x=t_recd, y=contrib1, mode='lines', name='Contrib 1 (Φ1)',
+        line=dict(color='#3498db', width=1.5)
+    ), row=2, col=1)
+    fig.add_trace(go.Scatter(
+        x=t_recd, y=contrib2, mode='lines', name='Contrib 2 (Φ2)',
+        line=dict(color='#2ecc71', width=1.5)
+    ), row=2, col=1)
+    fig.add_trace(go.Scatter(
+        x=t_recd, y=contrib3, mode='lines', name='Contrib 3 (Φ3)',
+        line=dict(color='#e74c3c', width=2)
+    ), row=2, col=1)
+    
+    # 3. Fractional Contribution
+    fig.add_trace(go.Scatter(
+        x=t_recd, y=frac3, mode='lines', name='Frac Level 3',
+        line=dict(color='#9b59b6', width=2),
+        fill='tozeroy', fillcolor='rgba(155, 89, 182, 0.2)'
+    ), row=3, col=1)
+    fig.add_hline(y=1.0/3.0, line_dash="dot", line_color="#7f8c8d", annotation_text="1/3 uniform", row=3, col=1)
+    
+    if tstar is not None and tstar < len(t_recd):
+        for i in range(1, 4):
+            fig.add_vline(x=tstar, line_width=2, line_dash="dash", line_color="red", row=i, col=1)
+    
+    fig.update_layout(
+        height=800,
+        width=800,
+        margin=dict(l=20, r=20, t=40, b=20),
+        template='simple_white',
+        showlegend=True,
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+    )
+    
+    img_bytes = fig.to_image(format="png", engine="kaleido", scale=2)
     return base64.b64encode(img_bytes).decode("utf-8")

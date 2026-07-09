@@ -1,5 +1,5 @@
 """
-Generador de Reportes Académicos - Systemic Tau Paradigm v5.6.0
+Generador de Reportes Académicos - Systemic Tau Paradigm v5.6.1
 """
 
 from __future__ import annotations
@@ -78,6 +78,10 @@ def generate_academic_report(
     # 4.6. ORDINAL MEMORY
     if include_figures and figures and "Ordinal Memory Dynamics" in figures:
         sections.append(_ordinal_section(results, lang, figures, include_theoretical_captions))
+
+    # 4.7. NESTED RECD
+    if include_figures and figures and "Nested RECD Extramental Clock" in figures:
+        sections.append(_nested_recd_section(results, lang, figures, include_theoretical_captions))
 
     # 5. WARNINGS
     if results.warnings:
@@ -210,7 +214,7 @@ dataset: {dataset_str}
 
 {author_block}{org_str}---
 
-**Generado automáticamente vía `systemictau v5.6.0`**
+**Generado automáticamente vía `systemictau v5.6.1`**
 *Marco Teórico basado en la Síntesis Magna v6 y The Principle of Ontological Ascent (Padilla, 2026).*"""
     else:
         return f"""---
@@ -224,7 +228,7 @@ dataset: {dataset_str}
 
 {author_block}{org_str}---
 
-**Automatically generated via `systemictau v5.6.0`**
+**Automatically generated via `systemictau v5.6.1`**
 *Theoretical Framework based on the Magna Synthesis v6 and The Principle of Ontological Ascent (Padilla, 2026).*"""
 
 def _executive_summary(results: OntologicalAscentResult, lang: str) -> str:
@@ -490,6 +494,43 @@ def _ordinal_section(results, lang: str, figures: dict, include_theoretical_capt
         
     return f"{header}\n\n{img_md}\n\n{desc}{caption}"
 
+def _nested_recd_section(results, lang: str, figures: dict, include_theoretical_captions: bool) -> str:
+    header = "## Tier 6: Nested RECD (Extramental Clock)" if lang == "en" else "## Nivel 6: RECD Anidado (Reloj Extramental)"
+    
+    fig = figures.get("Nested RECD Extramental Clock")
+    if not fig:
+        return ""
+        
+    img_md = f"![Nested RECD Extramental Clock](data:image/png;base64,{fig})"
+    
+    desc_en = (
+        "**Figure: Nested RECD Extramental Clock.**\n"
+        "Tracks the discrete time accumulation of systemic divergences at three nested scales ($Φ_1$, $Φ_2$, $Φ_3$). "
+        "A sharp increase in the Fraction of Level 3 Contribution indicates systemic emergence, where global macroscopic shifts dominate over local oscillations."
+    )
+    desc_es = (
+        "**Figura: Reloj Extramental RECD Anidado.**\n"
+        "Rastrea la acumulación de tiempo discreto de las divergencias sistémicas en tres escalas anidadas ($Φ_1$, $Φ_2$, $Φ_3$). "
+        "Un aumento brusco en la Fracción de Contribución del Nivel 3 indica emergencia sistémica, donde los cambios macroscópicos globales dominan sobre las oscilaciones locales."
+    )
+    desc = desc_en if lang == "en" else desc_es
+    
+    caption = ""
+    if include_theoretical_captions:
+        cap_en = (
+            "> **Theoretical Note:** The Nested RECD paradigm decomposes the classical Relative Entropy of Cumulative Differences into hierarchical levels. "
+            "Level 1 represents local noise, Level 2 represents meso-scale coupling, and Level 3 represents global ontological shifts. "
+            "When the system approaches $t^*$, the entropic divergence at Level 3 absorbs the degrees of freedom from lower levels, signaling a phase transition."
+        )
+        cap_es = (
+            "> **Nota Teórica:** El paradigma RECD Anidado descompone la Entropía Relativa de Diferencias Acumuladas clásica en niveles jerárquicos. "
+            "El Nivel 1 representa el ruido local, el Nivel 2 el acoplamiento a mesoescala, y el Nivel 3 los cambios ontológicos globales. "
+            "Cuando el sistema se acerca a $t^*$, la divergencia entrópica en el Nivel 3 absorbe los grados de libertad de los niveles inferiores, señalando una transición de fase."
+        )
+        caption = "\n\n" + (cap_en if lang == "en" else cap_es)
+        
+    return f"{header}\n\n{img_md}\n\n{desc}{caption}"
+
 def _reproducibility_section(results: OntologicalAscentResult, lang: str) -> str:
     header = "## Reproducibility" if lang == "en" else "## Reproducibilidad"
     
@@ -500,7 +541,7 @@ def _reproducibility_section(results: OntologicalAscentResult, lang: str) -> str
     res_hash = hashlib.sha256(core_str.encode()).hexdigest()[:8]
     
     if lang == "en":
-        text = f"This analysis was generated using **`systemictau v5.6.0`**.\n\n"
+        text = f"This analysis was generated using **`systemictau v5.6.1`**.\n\n"
         text += f"**Core Parameters:**\n"
         text += f"- `window_size`: {results.window_size}\n"
         text += f"- `theta_A`: {theta_a}\n\n"
@@ -508,7 +549,7 @@ def _reproducibility_section(results: OntologicalAscentResult, lang: str) -> str
         text += "The full `OntologicalAscentResult` object associated with this identifier was serialized to `analysis_result.json` (available as supplementary material or within the app's analytical export hub). "
         text += "Cite as: Padilla (2026). *Magna Synthesis v6* and associated Python package."
     else:
-        text = f"Este análisis fue generado utilizando **`systemictau v5.6.0`**.\n\n"
+        text = f"Este análisis fue generado utilizando **`systemictau v5.6.1`**.\n\n"
         text += f"**Parámetros Principales:**\n"
         text += f"- `window_size`: {results.window_size}\n"
         text += f"- `theta_A`: {theta_a}\n\n"
