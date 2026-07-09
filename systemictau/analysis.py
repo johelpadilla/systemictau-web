@@ -37,6 +37,7 @@ def run_full_analysis(
     adaptive_breathing: bool = False,
     compute_tda: bool = False,
     compute_ordinal: bool = False,
+    compute_nested_recd: bool = False,
     **kwargs,
 ) -> OntologicalAscentResult:
     """
@@ -223,6 +224,45 @@ def run_full_analysis(
         except Exception as e:
             warnings.append(f"Error computing Ordinal Memory: {str(e)}")
 
+    # === 9. Nested RECD (Extramental Clock) ===
+    nested_recd_results = None
+    if compute_nested_recd:
+        try:
+            from nested_recd import compute_recd_from_conjunctions, compute_weighted_contributions
+            
+            nested_m = kwargs.get("nested_m", 3)
+            nested_d = kwargs.get("nested_d", 4)
+            nested_theta3 = kwargs.get("nested_theta3", 0.10)
+            nested_window = kwargs.get("nested_window", window_size)
+            
+            # Nested RECD works best if we feed it the raw data or z-scored data
+            # Here we pass X directly. If X is a DataFrame, convert to numpy
+            X_arr = np.asarray(X)
+            
+            recd_out = compute_recd_from_conjunctions(
+                X_arr,
+                m=nested_m,
+                d=nested_d,
+                theta3=nested_theta3,
+                window_tau=nested_window
+            )
+            
+            # Compute weighted contributions
+            contribs = compute_weighted_contributions(recd_out)
+            
+            # Combine dicts
+            nested_recd_results = {**recd_out, **contribs}
+            
+            # Handle NaNs for JSON serialization later
+            for k, v in nested_recd_results.items():
+                if isinstance(v, np.ndarray):
+                    nested_recd_results[k] = np.nan_to_num(v, nan=0.0).tolist()
+                elif isinstance(v, float) and np.isnan(v):
+                    nested_recd_results[k] = 0.0
+                    
+        except Exception as e:
+            warnings.append(f"Error computing Nested RECD: {str(e)}")
+
     return OntologicalAscentResult(
         X=X,
         window_size=window_size,
@@ -249,5 +289,6 @@ def run_full_analysis(
         estimated_period_series=estimated_period_series,
         tda_results=tda_results,
         ordinal_results=ordinal_results,
+        nested_recd_results=nested_recd_results,
         figures=None
     )

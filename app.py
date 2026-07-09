@@ -175,7 +175,7 @@ def generate_macro_clusters(df_numeric, cols, num_clusters, agg_method):
     )
 
 @st.cache_data(show_spinner=False)
-def run_core_math(X, window_size, component_names=None, adaptive_breathing=False, compute_tda=False, compute_ordinal=False, **kwargs):
+def run_core_math(X, window_size, component_names=None, adaptive_breathing=False, compute_tda=False, compute_ordinal=False, compute_nested_recd=False, **kwargs):
     """
     v5.6.0: Added adaptive_breathing flag and compute_tda flag.
     v5.1.0: Added compute_ordinal flag.
@@ -183,7 +183,7 @@ def run_core_math(X, window_size, component_names=None, adaptive_breathing=False
     if adaptive_breathing:
         st.info("🫁 **Adaptive Breathing Window (W_t) engaged** — Dynamic regime-aware window sizing is active. The engine will automatically expand $W_t$ in hyper-persistent regimes and contract it during chaotic periods.")
     
-    res_obj = run_full_analysis(X, window_size=window_size, component_names=component_names, adaptive_breathing=adaptive_breathing, compute_tda=compute_tda, compute_ordinal=compute_ordinal, **kwargs)
+    res_obj = run_full_analysis(X, window_size=window_size, component_names=component_names, adaptive_breathing=adaptive_breathing, compute_tda=compute_tda, compute_ordinal=compute_ordinal, compute_nested_recd=compute_nested_recd, **kwargs)
     
     # Check for warnings
     if res_obj.warnings:
@@ -212,6 +212,8 @@ def run_core_math(X, window_size, component_names=None, adaptive_breathing=False
         "metadata": res_obj.metadata,
         "figures": None,
         "tda_results": getattr(res_obj, "tda_results", None),
+        "ordinal_results": getattr(res_obj, "ordinal_results", None),
+        "nested_recd_results": getattr(res_obj, "nested_recd_results", None),
         "nonlinear_stats": {
             "hp_z": res_obj.hp_z,
             "laminarity": res_obj.lam,
@@ -346,6 +348,17 @@ with st.sidebar:
     - Full Mode measures directed information flow (O(N²) complexity)."""
         )
         st.session_state.compute_ordinal = compute_ordinal
+        
+        compute_nested_recd = st.checkbox(
+            "🕰️ Nested RECD (Extramental Clock)", 
+            value=True,
+            help="""**Nested Ordinal RECD**
+            
+    Computes nested ordinal conjunction levels ($\Phi_1$, $\Phi_2$, $\Phi_3$) and the $\lambda$-weighted Discrete Extramental Clock.
+    - Extracts deep structural memory and synergistic patterns before critical transitions.
+    - Essential for Cardiac and Physiological data mapping."""
+        )
+        st.session_state.compute_nested_recd = compute_nested_recd
     
     with st.expander("⚙️ Advanced Parameters"):
         st.markdown("<small>Probabilistic Filters</small>", unsafe_allow_html=True)
@@ -382,6 +395,14 @@ with st.sidebar:
         st.session_state.ordinal_m = ordinal_m
         st.session_state.ordinal_delay = ordinal_delay
         
+        st.markdown("<small>Nested RECD Parameters</small>", unsafe_allow_html=True)
+        nested_m = st.slider("Nested Embedding Dimension (m)", 2, 5, 3, help="Length of ordinal patterns for Level 1-3 conjunctions.")
+        nested_d = st.slider("Alphabet Size (d)", 2, 6, 4, help="Alphabet size for discretization. Typically 4.")
+        nested_theta3 = st.number_input("Theta3 (Level 3 Surplus Threshold)", value=0.10, step=0.01, help="Threshold for Level 3 synergistic information surplus.")
+        
+        st.session_state.nested_m = nested_m
+        st.session_state.nested_d = nested_d
+        st.session_state.nested_theta3 = nested_theta3
     with st.expander("📝 Report Branding"):
         report_title = st.text_input("Project Title", value="Systemic Tau Analysis")
         report_author = st.text_input("Lead Analyst / Author", value="")
@@ -408,12 +429,13 @@ with st.sidebar:
     )
 
 # Main Layout
-tab1, tab2, tab3, tab8, tab9, tab4, tab7, tab5, tab6 = st.tabs([
+tab1, tab2, tab3, tab8, tab9, tab10, tab4, tab7, tab5, tab6 = st.tabs([
     "📊 Data Hub & Health", 
     "🌐 Ontological Scales", 
     "📈 Systemic Analysis", 
     "🗺️ Geospatial Topology",
     "🧠 Ordinal Memory",
+    "🕰️ Nested RECD",
     "🌀 EWS & Diagnostics", 
     "🛡️ Robustness & Tiers",
     "💾 Export Center",
@@ -680,6 +702,7 @@ with tab3:
             adaptive_flag = st.session_state.get("adaptive_breathing", False)
             tda_flag = st.session_state.get("compute_tda", False)
             ordinal_flag = st.session_state.get("compute_ordinal", False)
+            nested_recd_flag = st.session_state.get("compute_nested_recd", False)
             analysis_kwargs = {
                 "tda_stride": st.session_state.get("tda_stride", 5),
                 "tda_mode": st.session_state.get("tda_mode", "fast"),
@@ -687,7 +710,10 @@ with tab3:
                 "ordinal_stride": st.session_state.get("ordinal_stride", 5),
                 "ordinal_mode": st.session_state.get("ordinal_mode", "lite"),
                 "ordinal_m": st.session_state.get("ordinal_m", 3),
-                "ordinal_delay": st.session_state.get("ordinal_delay", 1)
+                "ordinal_delay": st.session_state.get("ordinal_delay", 1),
+                "nested_m": st.session_state.get("nested_m", 3),
+                "nested_d": st.session_state.get("nested_d", 4),
+                "nested_theta3": st.session_state.get("nested_theta3", 0.10)
             }
             res_dict, res_obj = run_core_math(
                 X, window_size, 
@@ -695,6 +721,7 @@ with tab3:
                 adaptive_breathing=adaptive_flag, 
                 compute_tda=tda_flag, 
                 compute_ordinal=ordinal_flag,
+                compute_nested_recd=nested_recd_flag,
                 **analysis_kwargs
             )
             st.session_state.analysis_results = res_dict
@@ -917,6 +944,28 @@ with tab9:
                 legend=dict(x=0.01, y=0.99)
             )
             st.plotly_chart(fig, width="stretch")
+
+# ----------------- TAB 10: NESTED RECD -----------------
+with tab10:
+    st.header("Nested RECD (Extramental Clock) 🕰️")
+    
+    if "analysis_results" not in st.session_state or st.session_state.analysis_results is None:
+        st.warning("⚠️ **Action Required:** Please run Systemic Analysis first.")
+    else:
+        res = st.session_state.raw_results
+        recd_res = res.nested_recd_results
+        
+        if recd_res is None:
+            st.warning("Nested RECD was not computed. Please enable 'Nested RECD (Extramental Clock)' in the side panel and re-run the global analysis.")
+        else:
+            st.markdown("### Extramental Clock & Synergistic Emergence")
+            st.markdown("The **Extramental Clock ($T_{recd}$)** is a modified, purely relational timescale driven by ordinal conjunctions. The **Excess3** variable tracks the surplus of Level 3 conjunctions compared to uniform noise, acting as a proxy for complex emergence.")
+            
+            # Display Dashboard
+            from systemictau.visualization.monumental_viz import plot_nested_recd_dashboard
+            fig = plot_nested_recd_dashboard(st.session_state.analysis_results)
+            if fig is not None:
+                st.plotly_chart(fig, use_container_width=True)
 
 # ----------------- TAB 4: DIAGNOSTICS & EWS -----------------
 with tab4:

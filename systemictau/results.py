@@ -65,6 +65,9 @@ class OntologicalAscentResult:
     # === Ordinal Memory (Symbolic Transfer Entropy) ===
     ordinal_results: Optional[Dict[str, Any]] = None
     
+    # === Nested RECD (Extramental Clock) ===
+    nested_recd_results: Optional[Dict[str, Any]] = None
+    
     component_names: List[str] = field(default_factory=list)
     
     # === Teorema 24v ===

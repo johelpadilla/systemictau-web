@@ -1,4 +1,5 @@
 import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 import numpy as np
 from typing import Dict, Any
 
@@ -404,5 +405,90 @@ def plot_unimodal_return_map(results: Dict[str, Any]) -> go.Figure:
             font=dict(color="white")
         )
     )
+    return fig
+
+def plot_nested_recd_dashboard(results: Dict[str, Any]) -> go.Figure:
+    """
+    Renders the Nested RECD 3-panel dashboard (T_recd clock, Conjunctions, Fractions)
+    """
+    if "nested_recd_results" not in results or not results["nested_recd_results"]:
+        return go.Figure()
+        
+    recd = results["nested_recd_results"]
+    t_recd = np.arange(len(recd["phi1"]))
+    
+    phi1 = np.asarray(recd["phi1"])
+    phi2 = np.asarray(recd["phi2"])
+    phi3 = np.asarray(recd["phi3"])
+    excess3 = np.asarray(recd["excess3"])
+    T_series = np.asarray(recd["T_recd"])
+    
+    contrib1 = np.asarray(recd.get("contrib1", phi1))
+    contrib2 = np.asarray(recd.get("contrib2", phi2))
+    contrib3 = np.asarray(recd.get("contrib3", phi3))
+    frac3 = np.asarray(recd.get("frac_contrib3", np.zeros_like(phi1)))
+    
+    tstar = results.get("t_star", None)
+    
+    fig = make_subplots(
+        rows=3, cols=1,
+        shared_xaxes=True,
+        vertical_spacing=0.08,
+        subplot_titles=(
+            "Extramental Clock Accumulation (T_recd) & Excess3",
+            "Nested Ordinal Contributions (αk * Φk)",
+            "Fractional Contribution of Level 3 (Emergence)"
+        )
+    )
+    
+    # 1. T_recd and Excess3
+    fig.add_trace(go.Scatter(
+        x=t_recd, y=T_series, mode='lines', name='T_recd Clock',
+        line=dict(color='#8e44ad', width=2)
+    ), row=1, col=1)
+    
+    fig.add_trace(go.Scatter(
+        x=t_recd, y=excess3, mode='lines', name='Excess3 (Level 3 proxy)',
+        line=dict(color='#f43f5e', width=1, dash='dot')
+    ), row=1, col=1)
+    
+    # 2. Contributions
+    fig.add_trace(go.Scatter(
+        x=t_recd, y=contrib1, mode='lines', name='Contrib 1 (Φ1)',
+        line=dict(color='#3498db', width=1.5)
+    ), row=2, col=1)
+    fig.add_trace(go.Scatter(
+        x=t_recd, y=contrib2, mode='lines', name='Contrib 2 (Φ2)',
+        line=dict(color='#2ecc71', width=1.5)
+    ), row=2, col=1)
+    fig.add_trace(go.Scatter(
+        x=t_recd, y=contrib3, mode='lines', name='Contrib 3 (Φ3)',
+        line=dict(color='#e74c3c', width=2)
+    ), row=2, col=1)
+    
+    # 3. Fractional Contribution
+    fig.add_trace(go.Scatter(
+        x=t_recd, y=frac3, mode='lines', name='Frac Level 3',
+        line=dict(color='#9b59b6', width=2),
+        fill='tozeroy', fillcolor='rgba(155, 89, 182, 0.2)'
+    ), row=3, col=1)
+    fig.add_hline(y=1.0/3.0, line_dash="dot", line_color="#7f8c8d", annotation_text="1/3 uniform", row=3, col=1)
+    
+    if tstar is not None and tstar < len(t_recd):
+        for i in range(1, 4):
+            fig.add_vline(x=tstar, line_width=2, line_dash="dash", line_color=COLORS['tstar'], row=i, col=1)
+    
+    fig.update_layout(
+        height=800,
+        margin=dict(l=20, r=20, t=40, b=20),
+        template='plotly_white',
+        hovermode="x unified",
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+    )
+    
+    fig.update_yaxes(title_text="Cumulative", row=1, col=1)
+    fig.update_yaxes(title_text="α_k * Φ_k", row=2, col=1)
+    fig.update_yaxes(title_text="Fraction", row=3, col=1, range=[0, 1.05])
+    fig.update_xaxes(title_text="Time Step", row=3, col=1)
     
     return fig

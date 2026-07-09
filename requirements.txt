@@ -9,3 +9,4 @@ fpdf2>=2.7.0
 networkx>=3.0.0
 scikit-learn>=1.2.0
 openpyxl>=3.1.0
+nested-recd>=0.1.0
