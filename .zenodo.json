@@ -1,0 +1,23 @@
+{
+  "upload_type": "software",
+  "title": "Systemic Tau: A Topological Framework for Early Warning Signals in Complex Systems",
+  "creators": [
+    {
+      "name": "Padilla-Villanueva, Johel",
+      "orcid": "0000-0002-5797-6931",
+      "affiliation": "University of Puerto Rico, Medical Sciences Campus"
+    }
+  ],
+  "description": "<p>Systemic Tau (systemictau-web) is a Streamlit application for computing Systemic Tau (τ<sub>s</sub>) and Discrete Extramental Clock (RECD) analyses on time series, aimed at detecting structural transitions and early warning signals in complex non-linear systems. Its Numba-optimized backend (<code>systemictau/</code>) includes topology, ordinal-memory and analysis modules; sample data (e.g., DengAI) and a PDF report exporter are included.</p><p>Run with <code>pip install -r requirements.txt</code> and <code>streamlit run app.py</code>.</p>",
+  "keywords": [
+    "Systemic Tau",
+    "Discrete Extramental Clock (RECD)",
+    "Early warning signals",
+    "Critical transitions",
+    "Topological data analysis",
+    "Symbolic transfer entropy",
+    "Time series analysis",
+    "Complex systems"
+  ],
+  "license": "mit"
+}
