@@ -1,12 +1,25 @@
 cff-version: 1.2.0
 message: "If you use this software, please cite it as below."
-authors:
-- family-names: "Padilla-Villanueva"
-  given-names: "Johel"
+type: software
 title: "Systemic Tau: A Topological Framework for Early Warning Signals in Complex Systems"
-version: 4.5.0
-date-released: 2026-07-05
+authors:
+  - family-names: "Padilla-Villanueva"
+    given-names: "Johel"
+    orcid: "https://orcid.org/0000-0002-5797-6931"
+    affiliation: "University of Puerto Rico, Medical Sciences Campus"
+version: "5.6.1"
+date-released: 2026-07-09
+doi: 10.5281/zenodo.21210454
 url: "https://github.com/johelpadilla/systemictau-web"
-doi: 10.5281/zenodo.21210455
+repository-code: "https://github.com/johelpadilla/systemictau-web"
 abstract: "Systemic Tau is an autonomous discovery engine for computing Discrete Extramental Clock (RECD) topologies to detect structural transitions and early warning signals in complex systems."
 license: MIT
+keywords:
+  - "Systemic Tau"
+  - "Discrete Extramental Clock (RECD)"
+  - "Early warning signals"
+  - "Critical transitions"
+  - "Topological data analysis"
+  - "Symbolic transfer entropy"
+  - "Time series analysis"
+  - "Complex systems"
